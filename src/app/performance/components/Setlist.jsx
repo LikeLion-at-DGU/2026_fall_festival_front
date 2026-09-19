@@ -46,7 +46,7 @@ const Song = styled.li`
     color: #100B0B;
     font-weight: 400;
     line-height: normal;
-    font-family: Pretendard;
+    font-family: var(--font-pretendard);
 `
 
 const EmptyText = styled.p`
