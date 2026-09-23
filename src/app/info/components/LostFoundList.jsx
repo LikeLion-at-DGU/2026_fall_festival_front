@@ -1,5 +1,6 @@
 import EmptyState from '../../../components/common/EmptyState'
 import { useTranslation } from '../../../i18n/useTranslation'
+import searchIcon from '../../../assets/map/search.svg'
 import * as S from './LostFoundList.styles'
 
 const DATES = [
@@ -23,7 +24,7 @@ export default function LostFoundList({
   return (
     <S.Stack>
       <S.SearchWrap>
-        <S.SearchIcon aria-hidden="true">⌕</S.SearchIcon>
+        <S.SearchIcon src={searchIcon} alt="" aria-hidden="true" />
         <S.Search
           type="search"
           value={keyword}

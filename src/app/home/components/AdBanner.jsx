@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
 import Modal from '../../../components/common/Modal'
@@ -12,6 +12,8 @@ import scien from '../assets/scien.png'
 import sogaeting from '../assets/sogaeting.svg'
 import ba from '../assets/ba.png'
 import ace from '../assets/ace.png'
+import leaders from '../assets/108.png'
+import stu from '../assets/stuco.png'
 
 // 상단 광고 배너 (기능명세서 바탕으로) 일정 시간(5초)마다 자동 롤링, 클릭 시 안내>협업 페이지로 이동
 
@@ -66,6 +68,22 @@ const BANNERS = [
     boothId: null,
     to: null,
   },
+  {
+    id: 7,
+    title: '108 리더스',
+    image: leaders,
+    href: null,
+    boothId: null,
+    to: '/info/collab/108-leaders',
+  },
+  {
+    id: 8,
+    title: '축제기획단',
+    image: stu,
+    href: null,
+    boothId: null,
+    to: '/info/collab/festival-planning-team',
+  },
 ]
 
 const ROLLING_INTERVAL = 5000
@@ -107,6 +125,7 @@ const Indicator = styled.span`
 
 export default function AdBanner() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [index, setIndex] = useState(0)
   const [openBoothId, setOpenBoothId] = useState(null)
   const [sheetTab, setSheetTab] = useState('info')
@@ -143,7 +162,9 @@ export default function AdBanner() {
       return
     }
     if (banner.to) {
-      navigate(banner.to)
+      navigate(banner.to, {
+        state: { from: `${location.pathname}${location.search}` },
+      })
     }
   }
 
