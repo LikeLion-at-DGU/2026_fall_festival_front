@@ -326,8 +326,6 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
   //
   // preset을 의존성에 넣지 않고 ref로 읽는 이유: 구역이 바뀌면 위 구역 이펙트가 이미 기본 시점으로
   // 되돌려 놓으므로, 여기서 또 비행을 만들면 같은 자리로 가는 비행이 겹친다.
-  const presetRef = useRef(preset)
-  presetRef.current = preset
   // 직전 focusBooth — "있다가 없어졌을 때"만 축소해야 한다. 지도에 막 들어온 순간에도 focusBooth가
   // null이지만 그땐 이미 기본 시점이라 되돌릴 게 없다.
   const previousFocusRef = useRef(focusBooth)
@@ -350,6 +348,17 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
       }
     }
 
+    // 선택이 풀렸을 때(#275 축소)를 먼저 처리한다.
+    // getBoothFocus는 부스가 없으면 null을 주므로, 이 분기를 아래로 내리면
+    // `if (!focus) return`에 먼저 걸려서 축소가 아예 실행되지 않는다.
+    if (!focusBooth) {
+      if (!previousFocus) return
+      startFlight(presetRef.current.position, presetRef.current.target)
+      return
+    }
+
+    // 기준 각도는 지금 카메라가 아니라 구역 기본 시점에서 뽑는다(#287).
+    // 어디서 눌렀는지와 무관하게 늘 같은 방향에 서야 "기준이 있다"는 느낌이 난다.
     const zonePreset = presetRef.current
     const orbit = getPresetOrbit(zonePreset)
     const focus = getBoothFocus(focusBooth, {
@@ -361,16 +370,6 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
     })
     if (!focus) return
 
-    startFlight(focus.position, focus.target)
-
-    if (!focusBooth) {
-      if (!previousFocus) return
-      startFlight(presetRef.current.position, presetRef.current.target)
-      return
-    }
-
-    const focus = getBoothFocus(focusBooth, camera.position.toArray())
-    if (!focus) return
     startFlight(focus.position, focus.target)
   }, [camera, controlsRef, focusBooth])
 
