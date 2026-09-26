@@ -1,10 +1,8 @@
 import styled from "styled-components";
+import { statusMessageStyles } from '../statusMessageStyles'
 
 export const StatusMessage = styled.p`
-    padding: 24px 0;
-    text-align: center;
-    font-size: 13px;
-    color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+    ${statusMessageStyles}
 `
 
 export const BoothCardList = styled.div`
