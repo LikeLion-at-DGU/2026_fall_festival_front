@@ -78,8 +78,8 @@ export const DetailPanel = styled.section`
     box-sizing: border-box;
 
     border-radius: 12px;
-    background: transparent;
-    box-shadow: 0 0 10.82px rgba(0, 0, 0, 0.25);
+    background: rgba(253, 253, 253, 0.5);
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.1);
 `
 
 export const Divider = styled.div`
