@@ -66,3 +66,56 @@ export function getBoothTents(booth) {
     },
   }))
 }
+
+// 부스가 쓰는 천막 전체의 가운데 자리 — 등불 마커(ZoneBooths)와 카메라 타깃(camera/getBoothFocus.js)이
+// 같이 쓴다. 2026-09-26 추가(이슈 #287, 재원 요청 "등불을 첫 번째 부스가 아닌 부스 집합의 가운데에").
+//
+// 왜 필요한가: 지금까지 등불과 카메라는 첫 번째 천막(placements[0]) 위에 있었다. 한 동만 쓰는 부스는
+// 그게 곧 가운데라 문제가 없었지만, 여러 동을 쓰는 부스(142동 중 66동)는 등불이 줄 맨 앞에 매달려서
+// 부스가 어디부터 어디까지인지 알 수 없었다. 디프(7동, x 방향으로 약 24m)가 가장 심했다.
+//
+// 가운데를 잡는 방식 두 가지를 정했다.
+//   - x·z는 천막 위치의 평균이다. 천막을 감싸는 상자의 중심(min·max의 중간)이 아닌 이유 —
+//     천막이 한쪽에 몰린 부스(왼쪽 4동 + 오른쪽 1동 같은 배치)에서 상자 중심은 아무 천막도 없는
+//     빈자리에 오는데, 평균은 천막이 많은 쪽으로 끌려가서 "부스의 몸통"에 더 가깝다.
+//   - y(높이)는 평균이 아니라 가장 높은 천막의 지면 높이다. y는 "그 자리 땅의 높이"라서,
+//     계단·경사에 걸친 부스에서 평균을 쓰면 등불이 높은 쪽 천막 안으로 파고든다.
+//     제일 높은 지면에 맞추면 어느 천막과도 겹치지 않는다.
+//
+// 천막이 0동인 부스(좌표 정보 미수령)는 null이다 — 부르는 쪽이 그때 씬에서 빼면 된다.
+// 그대로 [0,0,0]을 돌려주면 그런 부스들이 전부 원점에 겹쳐 그려진다.
+export function getBoothCenter(tents) {
+  if (!Array.isArray(tents) || tents.length === 0) return null
+
+  let sumX = 0
+  let sumZ = 0
+  let maxY = -Infinity
+  for (const { position } of tents) {
+    sumX += position[0]
+    sumZ += position[2]
+    if (position[1] > maxY) maxY = position[1]
+  }
+  return [sumX / tents.length, maxY, sumZ / tents.length]
+}
+
+// 가운데에 가장 가까운 천막. "천막 하나에만" 붙어야 하는 것에 쓴다 — 지금은 <Html> 이름표(?marker=label)뿐이다.
+// 등불은 천막과 상관없는 자리(getBoothCenter)에 띄울 수 있지만 이름표는 BoothMarker가 자기 천막 위에
+// 다는 것이라 천막 중 하나를 골라야 한다. 첫 천막에 달면 여러 동 부스에서 이름표만 줄 맨 앞에 남아
+// 등불(가운데)과 따로 놀기 때문에, 가운데에 가장 가까운 동을 고른다.
+// 거리가 같은 천막이 여러 개면 앞선 것(= 천막 번호가 작은 쪽)이 이겨서 결과가 항상 같다.
+export function getBoothCenterTent(tents, center = getBoothCenter(tents)) {
+  if (!center || !Array.isArray(tents) || tents.length === 0) return null
+
+  let closest = null
+  let closestDistance = Infinity
+  for (const tent of tents) {
+    const dx = tent.position[0] - center[0]
+    const dz = tent.position[2] - center[2]
+    const distance = dx * dx + dz * dz // 제곱거리로 비교 — 순서만 필요해서 sqrt를 생략한다
+    if (distance < closestDistance) {
+      closestDistance = distance
+      closest = tent
+    }
+  }
+  return closest
+}
