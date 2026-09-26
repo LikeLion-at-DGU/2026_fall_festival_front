@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { statusMessageStyles } from '../statusMessageStyles'
 
 export const Panel = styled.div`
   color: #272727;
@@ -211,15 +212,5 @@ export const Poster = styled.img`
 `
 
 export const Message = styled.p`
-  padding: 16px 0;
-  color: #737373;
-`
-
-export const Retry = styled.button`
-  display: block;
-  margin-top: 12px;
-  padding: 6px 12px;
-  border: 1px solid #9F9C99;
-  border-radius: 4px;
-  background: #fff;
+  ${statusMessageStyles}
 `

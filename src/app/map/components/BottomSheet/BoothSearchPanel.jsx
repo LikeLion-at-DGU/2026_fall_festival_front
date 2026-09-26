@@ -108,15 +108,16 @@ export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
 
   return (
     <S.Panel onKeyDown={(event) => { if (event.key === 'Escape') onCancel() }}>
-      <S.SearchRow onSubmit={(event) => {
+      <S.SearchRow $isNight={listTimeOfDay === 'night'} onSubmit={(event) => {
         event.preventDefault()
         if (!composingRef.current) search(keyword, true)
       }} role="search">
-        <S.InputWrapper>
+        <S.InputWrapper $isNight={listTimeOfDay === 'night'}>
           <S.IconButton type="submit" aria-label={t('map.search')} title={t('map.search')}>
             <SearchIcon isNight={listTimeOfDay === 'night'} />
           </S.IconButton>
           <S.Input
+            $isNight={listTimeOfDay === 'night'}
             type="search"
             maxLength={50}
             enterKeyHint="search"
@@ -132,15 +133,28 @@ export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
             onChange={(event) => handleKeywordChange(event.target.value)}
             autoFocus
           />
+          {keyword && (
+            <S.ClearInputButton
+              $isNight={listTimeOfDay === 'night'}
+              type="button"
+              aria-label={t('map.deleteSearchTitle')}
+              title={t('map.deleteSearchTitle')}
+              onClick={() => handleKeywordChange('')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M9 1.6875C4.968 1.6875 1.6875 4.968 1.6875 9C1.6875 13.032 4.968 16.3125 9 16.3125C13.032 16.3125 16.3125 13.032 16.3125 9C16.3125 4.968 13.032 1.6875 9 1.6875ZM9 2.8125C12.4239 2.8125 15.1875 5.57606 15.1875 9C15.1875 12.4239 12.4239 15.1875 9 15.1875C5.57606 15.1875 2.8125 12.4239 2.8125 9C2.8125 5.57606 5.57606 2.8125 9 2.8125ZM6.87375 6.06375L6.06375 6.87375L8.19225 9L6.06487 11.1263L6.87488 11.9362L9 9.80831L11.1263 11.9346L11.9362 11.1263L9.80831 9L11.9346 6.87375L11.1263 6.06375L9 8.19225L6.87375 6.06487V6.06375Z" fill="currentColor" />
+              </svg>
+            </S.ClearInputButton>
+          )}
         </S.InputWrapper>
-        <S.TextButton type="button" onClick={onCancel}>{t('common.cancel')}</S.TextButton>
+        <S.TextButton $isNight={listTimeOfDay === 'night'} type="button" onClick={onCancel}>{t('common.cancel')}</S.TextButton>
       </S.SearchRow>
       {status !== 'idle' ? (
         <section aria-label={t('map.searchResults')}>
-          <S.Heading>{t('map.searchResults')}</S.Heading>
-          {status === 'loading' ? <S.Empty role="status">{t('map.searching')}</S.Empty>
-            : status === 'error' ? <S.Empty role="alert">{error}</S.Empty>
-            : results.length === 0 ? <S.Empty>{t('map.noSearchResults')}</S.Empty>
+          <S.Heading $isNight={listTimeOfDay === 'night'}>{t('map.searchResults')}</S.Heading>
+          {status === 'loading' ? <S.Empty $isNight={listTimeOfDay === 'night'} role="status">{t('map.searching')}</S.Empty>
+            : status === 'error' ? <S.Empty $isNight={listTimeOfDay === 'night'} role="alert">{error}</S.Empty>
+            : results.length === 0 ? <S.Empty $isNight={listTimeOfDay === 'night'}>{t('map.noSearchResults')}</S.Empty>
             : <BoothCardList booths={results} filterBySearchTerm={false} onSelectBooth={(boothId, booth) => {
               rememberSearch(keyword)
               onSelectBooth(boothId, booth)
@@ -150,20 +164,20 @@ export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
       ) : (
         <section aria-label={t('map.recentSearches')}>
           <S.HistoryHeader>
-            <S.Heading>{t('map.recentSearches')}</S.Heading>
-            <S.TextButton type="button" disabled={!history.length} onClick={() => updateHistory([])}>{t('map.clearAll')}</S.TextButton>
+            <S.Heading $isNight={listTimeOfDay === 'night'}>{t('map.recentSearches')}</S.Heading>
+            <S.TextButton $isNight={listTimeOfDay === 'night'} type="button" disabled={!history.length} onClick={() => updateHistory([])}>{t('map.clearAll')}</S.TextButton>
           </S.HistoryHeader>
-          {!history.length && <S.Empty>{t('map.noRecentSearches')}</S.Empty>}
+          {!history.length && <S.Empty $isNight={listTimeOfDay === 'night'}>{t('map.noRecentSearches')}</S.Empty>}
           <S.HistoryList>
             {history.map((term) => (
               <S.HistoryItem key={term}>
-                <S.TermButton type="button" onClick={() => {
+                <S.TermButton $isNight={listTimeOfDay === 'night'} type="button" onClick={() => {
                   setKeyword(term)
                   updateSearchQuery(term)
                   search(term, true)
                 }}>{term}</S.TermButton>
                 <S.IconButton type="button" aria-label={t('map.deleteSearch', { term })} title={t('map.deleteSearchTitle')} onClick={() => updateHistory(history.filter((item) => item !== term))}>
-                  <S.CloseMark aria-hidden="true">×</S.CloseMark>
+                  <S.CloseMark $isNight={listTimeOfDay === 'night'} aria-hidden="true">×</S.CloseMark>
                 </S.IconButton>
               </S.HistoryItem>
             ))}

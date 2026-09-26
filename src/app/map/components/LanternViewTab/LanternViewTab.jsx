@@ -7,11 +7,12 @@ import styled from 'styled-components'
 import { useAuthStore } from '../../../../store/useAuthStore'
 import { getBoothLanterns, updateLantern, deleteLantern, reportLantern } from '../../../../api/lantern'
 import { useOptionalMapContext } from '../../context/MapProvider'
+import { useLanterns } from '../../../lantern/context/LanternProvider'
 import { getCurrentFestivalDate } from '../../../lantern/utils/getCurrentFestivalDate'
-import EmptyState from '../../../../components/common/EmptyState'
 import LanternCard from '../../../lantern/components/LanternCard'
 import LoginModal from '../../../auth/LoginModal'
 import { useTranslation } from '../../../../i18n/useTranslation'
+import { statusMessageStyles } from '../statusMessageStyles'
 
 const List = styled.ul`
   list-style: none;
@@ -53,6 +54,7 @@ const MineFilter = styled.button`
   justify-content: flex-end;
   gap: 6px;
   width: fit-content;
+  height: 21px;
   margin-top: 16px;
   margin-left: auto;
   padding: 0;
@@ -77,9 +79,9 @@ const MineFilter = styled.button`
   }
 `
 const CheckboxIconSlot = styled.span`
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
   display: grid;
   place-items: center;
 `
@@ -93,18 +95,27 @@ const Action = styled.button`
   margin: 8px 0;
   cursor: pointer;
 `
+const StatusMessage = styled.p`
+  ${statusMessageStyles}
+`
 
 // 부스·날짜·로그인 상태가 바뀌면 목록과 필터를 초기화한다.
 // selectedDate는 BoothDetailPanel이 props로 넘겨준다. MapProvider 안이면 컨텍스트 값을, 둘 다 없으면 오늘 축제일을 쓴다.
-export default function LanternViewTab({ boothId, selectedDate }) {
+export default function LanternViewTab({ boothId, selectedDate, isNight = false }) {
   const map = useOptionalMapContext()
   const { isLoggedIn, accessToken } = useAuthStore()
   const date = selectedDate ?? map?.selectedDate ?? getCurrentFestivalDate()
   const key = JSON.stringify([boothId, date, isLoggedIn, accessToken])
-  return <BoothLanternList key={key} boothId={boothId} date={date} isLoggedIn={isLoggedIn} />
+  return <BoothLanternList
+    key={key}
+    boothId={boothId}
+    date={date}
+    isLoggedIn={isLoggedIn}
+    isNight={isNight}
+  />
 }
 
-function BoothLanternList({ boothId, date, isLoggedIn }) {
+function BoothLanternList({ boothId, date, isLoggedIn, isNight }) {
   const { t } = useTranslation()
   const [onlyMine, setOnlyMine] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -133,25 +144,35 @@ function BoothLanternList({ boothId, date, isLoggedIn }) {
       >
         {t('map.onlyMine')}
         <CheckboxIconSlot>
-          <CheckboxIcon xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="var(--text_black, #272727)" strokeWidth="1" aria-hidden="true">
-            <path d="M12.75 0.5H4C2.067 0.5 0.5 2.067 0.5 4V12.75C0.5 14.683 2.067 16.25 4 16.25H12.75C14.683 16.25 16.25 14.683 16.25 12.75V4C16.25 2.067 14.683 0.5 12.75 0.5Z" strokeLinecap="round" strokeLinejoin="round" />
-            {onlyMine && (
-              <svg x="5.25" y="6.125" width="7" height="5" viewBox="0 0 7 5" fill="none">
-                <path d="M0.5 2.5L2.46875 4L5.75 0.5" stroke="var(--text_black, #272727)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </CheckboxIcon>
+          {onlyMine ? (
+            <CheckboxIcon xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+              <path d="M14.875 2.625H6.125C4.192 2.625 2.625 4.192 2.625 6.125V14.875C2.625 16.808 4.192 18.375 6.125 18.375H14.875C16.808 18.375 18.375 16.808 18.375 14.875V6.125C18.375 4.192 16.808 2.625 14.875 2.625Z" stroke="#7C7C7C" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M7.875 10.5L9.84375 12.25L13.125 8.75" stroke="#7C7C7C" strokeLinecap="round" strokeLinejoin="round" />
+            </CheckboxIcon>
+          ) : (
+            <CheckboxIcon xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+              <path d="M12.75 0.5H4C2.067 0.5 0.5 2.067 0.5 4V12.75C0.5 14.683 2.067 16.25 4 16.25H12.75C14.683 16.25 16.25 14.683 16.25 12.75V4C16.25 2.067 14.683 0.5 12.75 0.5Z" stroke="#7C7C7C" strokeLinecap="round" strokeLinejoin="round" />
+            </CheckboxIcon>
+          )}
         </CheckboxIconSlot>
       </MineFilter>
-      <LanternResults key={String(onlyMine)} boothId={boothId} date={date} mine={onlyMine} isLoggedIn={isLoggedIn} />
+      <LanternResults
+        key={String(onlyMine)}
+        boothId={boothId}
+        date={date}
+        mine={onlyMine}
+        isLoggedIn={isLoggedIn}
+        isNight={isNight}
+      />
     </section>
   )
 }
 
-function LanternResults({ boothId, date, mine, isLoggedIn }) {
+function LanternResults({ boothId, date, mine, isLoggedIn, isNight }) {
   const { t } = useTranslation()
   // 홈 랭킹 모달처럼 MapProvider 밖에서 열리면 부스 목록 갱신은 건너뛴다.
   const refreshBooths = useOptionalMapContext()?.refreshBooths
+  const { refreshLanterns } = useLanterns()
   const [reporting, setReporting] = useState(null)
   const [reportNotice, setReportNotice] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -174,6 +195,8 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
       const { data } = await (kind === 'edit' ? updateLantern(id, changes) : deleteLantern(id))
       if (!data?.success) throw new Error(t('map.requestFailed'))
       refreshBooths?.()
+      // 나의 등불(개수·사용한 부스)도 같이 갱신
+      refreshLanterns()
       if (!mounted.current) return
       setEditing(null)
       setDeleting(null)
@@ -257,16 +280,16 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
 
   return (
     <div aria-busy={status === 'loading'}>
-      {reporting && <ReportModal key={reporting.id} isOpen
+      {reporting && <ReportModal key={reporting.id} isOpen portal mapAppearance
         onClose={() => setReporting(null)} onSubmit={submitReport} />}
-      <AlertModal isOpen={reportNotice != null} onClose={() => setReportNotice(null)}
+      <AlertModal portal isOpen={reportNotice != null} onClose={() => setReportNotice(null)}
         title={reportNotice === 'duplicate' ? t('map.reportDuplicateTitle') : t('map.reportSuccessTitle')}
         subTitle={reportNotice === 'duplicate' ? t('map.reportDuplicateDescription') : t('map.reportSuccessDescription')} />
 
-      {editing && <EditLanternModal isOpen lantern={editing}
+      {editing && <EditLanternModal isOpen portal lantern={editing}
         onClose={() => { if (!busy.current) setEditing(null) }}
         onSubmit={(id, changes) => mutate('edit', id, changes)} />}
-      {deleting && <ConfirmDeleteModal isOpen pending={pending} error={mutationError}
+      {deleting && <ConfirmDeleteModal isOpen portal pending={pending} error={mutationError}
         onClose={() => { if (!busy.current) setDeleting(null) }}
         onConfirm={() => mutate('delete', deleting.id)} />}
 
@@ -275,7 +298,7 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
           <li key={item.id}>
             {['deleted_by_user', 'deleted_by_admin'].includes(item.status) ? (
               <p>{item.status === 'deleted_by_admin' ? t('map.deletedByAdmin') : t('map.deletedByUser')}</p>
-            ) : <LanternCard lantern={item} isMine={item.isMine === true}
+            ) : <LanternCard lantern={item} isMine={item.isMine === true} mapAppearance
               onReport={isLoggedIn && item.isMine === false ? () => setReporting(item) : undefined}
               onEdit={isLoggedIn && item.isMine === true && item.status === 'active' ? () => { setMutationError(''); setEditing(item) } : undefined}
               onDelete={isLoggedIn && item.isMine === true && item.status === 'active' ? () => { setMutationError(''); setDeleting(item) } : undefined}
@@ -283,12 +306,16 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
           </li>
         ))}
       </List>
-      {status === 'loading' && <p role="status">{t('map.loadingLanterns')}</p>}
+      {status === 'loading' && <StatusMessage $isNight={isNight} role="status">{t('map.loadingLanterns')}</StatusMessage>}
       {status === 'error' && <div role="alert">
-        <p>{error}</p>
+        <StatusMessage $isNight={isNight}>{error}</StatusMessage>
         <Action type="button" onClick={() => { setStatus('loading'); setAttempt((value) => value + 1) }}>{t('map.retry')}</Action>
       </div>}
-      {status === 'success' && items.length === 0 && <EmptyState>{mine ? t('map.noMineLanterns') : t('map.noLanterns')}</EmptyState>}
+      {status === 'success' && items.length === 0 && (
+        <StatusMessage $isNight={isNight}>
+          {mine ? t('map.noMineLanterns') : t('map.noLanterns')}
+        </StatusMessage>
+      )}
       {status === 'success' && hasNext && <Action type="button" onClick={() => { setStatus('loading'); setPage((value) => value + 1) }}>{t('map.more')}</Action>}
     </div>
   )

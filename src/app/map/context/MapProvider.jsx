@@ -145,8 +145,17 @@ export function MapProvider({ children }) {
     updateParams((params) => params.set('q', text), { replace: true })
   }, [updateParams])
 
-  // 상세의 ← 버튼, 검색의 「취소」 버튼이 쓴다. 브라우저 뒤로가기와 같은 동작이어야
-  // "어디로 돌아갈지"가 버튼과 제스처에서 달라지지 않는다.
+  // 상세 화면의 ← 버튼은 진입 경로와 관계없이 현재 구역의 부스 목록으로 이동한다.
+  // 검색 결과에서 상세로 들어온 경우에도 q를 함께 지워 검색 화면으로 돌아가지 않게 한다.
+  const openBoothList = useCallback(() => {
+    updateParams((params) => {
+      params.delete('booth')
+      params.delete('q')
+    }, { replace: true })
+  }, [updateParams])
+
+  // 검색의 「취소」 버튼이 쓴다. 브라우저 뒤로가기와 같은 동작이어야
+  // 검색 진입 전 화면으로 정확히 돌아간다.
   //
   // 히스토리가 비어 있을 때(예: /map?booth=57 링크를 새 탭에서 연 경우)는 돌아갈 칸이 없으므로
   // 목록 화면으로 대신 보낸다. 아래 히스토리 시딩이 보통 이 상황을 미리 막아준다.
@@ -300,6 +309,7 @@ export function MapProvider({ children }) {
       searchQuery,
       openSearch,
       updateSearchQuery,
+      openBoothList,
       goBack,
       isSheetOpen,
       setIsSheetOpen,
@@ -320,6 +330,7 @@ export function MapProvider({ children }) {
       searchQuery,
       openSearch,
       updateSearchQuery,
+      openBoothList,
       goBack,
       isSheetOpen,
       sheetTab,
