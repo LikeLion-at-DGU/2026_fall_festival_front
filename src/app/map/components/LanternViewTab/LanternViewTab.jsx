@@ -11,6 +11,7 @@ import { getCurrentFestivalDate } from '../../../lantern/utils/getCurrentFestiva
 import LanternCard from '../../../lantern/components/LanternCard'
 import LoginModal from '../../../auth/LoginModal'
 import { useTranslation } from '../../../../i18n/useTranslation'
+import { statusMessageStyles } from '../statusMessageStyles'
 
 const List = styled.ul`
   list-style: none;
@@ -94,15 +95,7 @@ const Action = styled.button`
   cursor: pointer;
 `
 const StatusMessage = styled.p`
-  margin: 0;
-  padding: 24px 0;
-  text-align: center;
-  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
-  font-family: Pretendard;
-  font-size: 13px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
+  ${statusMessageStyles}
 `
 
 // 부스·날짜·로그인 상태가 바뀌면 목록과 필터를 초기화한다.

@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { statusMessageStyles } from '../statusMessageStyles'
 
 export const TimeWrapper = styled.div`
     display: flex;
@@ -97,13 +98,5 @@ export const CategoryButton = styled.button`
 // 2026-09-18 추가: useMapZoneBooths 연결하면서 로딩/에러 상태 표시용으로 필요해짐
 // (전엔 mock json을 동기로 바로 읽어써서 로딩 상태 자체가 없었음)
 export const StatusMessage = styled.p`
-    margin: 0;
-    padding: 24px 0;
-    text-align: center;
-    font-family: Pretendard;
-    font-size: 13px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: normal;
-    color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+    ${statusMessageStyles}
 `

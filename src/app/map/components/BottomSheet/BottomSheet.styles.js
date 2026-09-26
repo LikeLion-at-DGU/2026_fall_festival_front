@@ -1,5 +1,16 @@
 import styled from 'styled-components'
 
+const getSheetHeight = ({ $isSearching, $snapPosition }) => {
+    if ($isSearching) return 'calc(100svh - var(--sheet-top-gap))'
+    if ($snapPosition === 'high') return 'calc(100dvh - var(--sheet-top-gap))'
+    if ($snapPosition === 'low') return 'var(--low-height)'
+    return 'var(--middle-height)'
+}
+
+const getSheetMaxHeight = ({ $isSearching }) => $isSearching
+    ? 'calc(100svh - var(--sheet-top-gap))'
+    : 'calc(100dvh - var(--sheet-top-gap))'
+
 export const Sheet = styled.div`
     position: fixed;
     top: ${({ $isSearching }) => $isSearching ? 'var(--sheet-top-gap)' : 'auto'};
@@ -10,17 +21,9 @@ export const Sheet = styled.div`
     --sheet-top-gap: 40px;
     --middle-height: 62dvh;
     --low-height: max(20px, calc(100dvh - 600px));
-    height: ${({ $isSearching, $snapPosition }) => $isSearching
-      ? 'calc(100svh - var(--sheet-top-gap))'
-      : $snapPosition === 'high'
-        ? 'calc(100dvh - var(--sheet-top-gap))'
-        : $snapPosition === 'low'
-          ? 'var(--low-height)'
-          : 'var(--middle-height)'};
+    height: ${getSheetHeight};
     min-height: var(--low-height);
-    max-height: ${({ $isSearching }) => $isSearching
-      ? 'calc(100svh - var(--sheet-top-gap))'
-      : 'calc(100dvh - var(--sheet-top-gap))'};
+    max-height: ${getSheetMaxHeight};
     transition: ${({ $isDragging }) => $isDragging ? 'none' : 'height 240ms ease, border-radius 240ms ease'};
     box-sizing: border-box;
     display: flex;
