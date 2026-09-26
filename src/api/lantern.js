@@ -1,3 +1,5 @@
+import { errorType, festivalDay } from '../analytics/policy'
+import { trackEvent } from '../analytics/analytics'
 import { apiClient } from './client'
 
 // 등불 관련 api — "달기" 플로우 + 부스별 등불 목록(등불 보기 탭)
@@ -10,8 +12,22 @@ export const getBoothLanterns = (boothId, { mine = false, date, page = 0, size =
   })
 
 // festival_date는 body에 없음 — 서버 시간 기준 자동 설정
-export const createLantern = ({ boothId, nickname, message }) =>
-  apiClient.post('/api/lanterns/', { booth_id: Number(boothId), nickname, message })
+export const createLantern = async ({ boothId, nickname, message }) => {
+  try {
+    const response = await apiClient.post('/api/lanterns/', { booth_id: Number(boothId), nickname, message })
+    const body = response.data
+    if (body?.success === false || !body?.data?.lantern_id) {
+      const error = new Error('Invalid lantern response')
+      error.response = response
+      throw error
+    }
+    trackEvent('lantern_submitted', { festival_day: festivalDay(body.data.festival_date), page_name: 'lantern' })
+    return response
+  } catch (error) {
+    trackEvent('lantern_submit_failed', { error_type: errorType(error), page_name: 'lantern' })
+    throw error
+  }
+}
 
 // booth_id, festival_date는 수정 불가 — nickname/message만 전달
 export const updateLantern = (lanternId, { nickname, message }) =>
@@ -35,4 +51,4 @@ export const getLantern = (lanternId) => apiClient.get(`/api/lanterns/${lanternI
 // 파라미터 미지정 시 서버가 오늘 날짜 + 현재 시각 기준 주/야간으로 판정해서
 // "당일 운영 부스만" 내려주므로 그대로 둔다.
 // 공개 API라 로그인 정보 오류 시 비로그인으로 재시도
-export const getLanternBoothOptions = () => apiClient.get('/api/booths/', { optionalUserAuth: true })
+export const getLanternBoothOptions = () => apiClient.get('/api/booths/', { optionalUserAuth: true })

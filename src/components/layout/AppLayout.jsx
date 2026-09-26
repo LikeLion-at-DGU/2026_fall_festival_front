@@ -1,3 +1,4 @@
+import AnalyticsPage from '../../analytics/AnalyticsPage'
 import { Outlet } from 'react-router-dom'
 
 import ScrollToTop from '../common/ScrollToTop'
@@ -13,6 +14,7 @@ export default function AppLayout() {
     <S.Page>
       <AuthHandler>
         <LanternProvider>
+          <AnalyticsPage />
           <ScrollToTop />
 
           <Outlet />

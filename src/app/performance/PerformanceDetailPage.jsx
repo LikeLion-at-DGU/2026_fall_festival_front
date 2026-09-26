@@ -1,3 +1,5 @@
+import { festivalDay } from '../../analytics/policy'
+import { useAnalyticsView } from '../../analytics/useAnalyticsView'
 import { useEffect, useState } from 'react'
 import {
     Navigate,
@@ -33,6 +35,7 @@ export default function PerformanceDetailPage() {
 
         getPerformanceDetail(id, { signal: controller.signal })
             .then(({ data: response }) => {
+                if (controller.signal.aborted) return
                 if (response?.success !== true || !response.data) {
                     throw new Error('Invalid performance detail response')
                 }
@@ -55,6 +58,7 @@ export default function PerformanceDetailPage() {
     }, [id])
 
     const { performance, isLoading, notFound } = state
+    useAnalyticsView('site_error_shown', !isLoading && !performance && !notFound, 'load', { error_type: 'load_failed' })
 
     // 셋리스트 없는 공연(has_setlist: false)은 상세 화면이 없다 — URL 직접 접근도 함께 막는다.
     if (performance?.has_setlist === false) {
@@ -94,6 +98,7 @@ export default function PerformanceDetailPage() {
                     </S.EmptyText>
                 ) : (
                     <>
+                        <PerformanceDetailTracking performance={performance} routeId={id} />
                         <PerformanceInfo
                             performance={
                                 performance
@@ -118,4 +123,12 @@ export default function PerformanceDetailPage() {
             </S.DetailPanel>
         </S.Page>
     )
+}
+
+// Mounted with the actual content, never with loading/error/redirect branches.
+// The tracking rule intentionally does not depend on has_setlist or song count.
+function PerformanceDetailTracking({ performance, routeId }) {
+    useAnalyticsView('performance_selected', String(performance.performance_id) === routeId,
+        routeId, { performance_id: performance.performance_id, festival_day: festivalDay(performance.festival_date) }, false)
+    return null
 }

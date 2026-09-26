@@ -1,3 +1,5 @@
+import { festivalDay } from '../../analytics/policy'
+import { useAnalyticsView } from '../../analytics/useAnalyticsView'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
@@ -29,7 +31,7 @@ export default function PerformancePage() {
   const dateParam = searchParams.get('date')
   const selectedDate = FESTIVAL_DATES.includes(dateParam) ? dateParam : FESTIVAL_DATES[0]
   const handleDateChange = (date) => {
-    setSearchParams({ date })
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set('date', date); return next })
   }
 
   const [state, setState] = useState(INITIAL_STATE)
@@ -40,6 +42,7 @@ export default function PerformancePage() {
     const fetchPerformances = () => {
       getPerformances(selectedDate, { signal: controller.signal })
         .then(({ data: response }) => {
+          if (controller.signal.aborted) return
           if (response?.success !== true || !Array.isArray(response.data?.performances)) {
             throw new Error('Invalid performance list response')
           }
@@ -74,6 +77,8 @@ export default function PerformancePage() {
 
   // server_time 기준으로 로컬에서 1분마다 갱신 — is_live 자체는 서버가 계산해서 내려주므로
   // now는 상단 "지금 공연중" 카드의 진행률(progress bar) 표시에만 쓰인다.
+  useAnalyticsView('performance_schedule_viewed', true, 'schedule', { festival_day: festivalDay(selectedDate) })
+  useAnalyticsView('site_error_shown', Boolean(state.error), 'load', { error_type: 'load_failed' })
   const now = useServerTime(state.serverTime)
   const nowPlaying = state.performances.find((p) => p.is_live) ?? null
 

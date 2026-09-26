@@ -1,3 +1,5 @@
+import { boothType, festivalDay } from '../../../analytics/policy'
+import { trackEvent } from '../../../analytics/analytics'
 import { getBooths } from '../../../api/map'
 import { useAuthStore } from '../../../store/useAuthStore'
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -107,8 +109,9 @@ export function MapProvider({ children }) {
   // 부스를 고르는 경로가 셋(3D 핀 클릭 / 바텀시트 목록·검색 / 홈 랭킹의 ?booth=)인데 전부 이 함수를
   // 지나가므로, 여기 한 곳에 두면 세 경로가 같은 규칙을 따른다. 검색 패널이나 바텀시트에 넣으면
   // 나머지 경로에 같은 코드를 또 써야 한다.
-  const setSelectedBoothId = useCallback((nextBoothId) => {
+  const setSelectedBoothId = useCallback((nextBoothId, selectionSource = 'map_pin', selectedBooth) => {
     const resolved = resolveBoothId(nextBoothId)
+    if (resolved != null) trackEvent('booth_selected', { booth_id: resolved, booth_type: boothType(selectedBooth ?? allBoothsRef.current?.find((b) => b.booth_id === resolved)), selection_source: selectionSource, festival_day: festivalDay(selectedDate) })
     const pickedZoneId = findZoneIdByBoothId(allBoothsRef.current, resolved)
 
     // 구역이 바뀌어야 한다면 "지금 있는 칸"의 zone부터 replace로 고친다.
@@ -127,7 +130,7 @@ export function MapProvider({ children }) {
       else params.set('booth', String(resolved))
       if (pickedZoneId) params.set('zone', pickedZoneId)
     }, { replace: false })
-  }, [updateParams, zoneId])
+  }, [updateParams, zoneId, selectedDate])
 
   // 검색 화면 진입 — push. 뒤로가기 한 번이면 목록으로 돌아온다.
   const openSearch = useCallback(() => {
@@ -202,6 +205,21 @@ export function MapProvider({ children }) {
   ), [currentList, zoneLabel])
 
   // 구역 필터를 거치기 전의 전체 목록. 위 setSelectedBoothId와 아래 첫 진입 보정이 함께 쓴다.
+  const appliedFilters = useRef(null)
+  useEffect(() => {
+    if (!currentList?.data) return
+    const next = { date: selectedDate, category: selectedCategory ?? 'all', time_slot: listTimeOfDay }
+    if (appliedFilters.current) {
+      for (const [type, value] of Object.entries(next)) {
+        if (appliedFilters.current[type] !== value) {
+          trackEvent('map_filter_applied', { filter_type: type, filter_value: String(value).toLowerCase(), festival_day: festivalDay(selectedDate) })
+          if (type === 'category') trackEvent('booth_category_selected', { booth_type: String(value).toLowerCase(), festival_day: festivalDay(selectedDate) })
+        }
+      }
+    }
+    appliedFilters.current = next
+  }, [currentList, selectedDate, selectedCategory, listTimeOfDay])
+
   const allBooths = currentList?.data?.booths
   allBoothsRef.current = allBooths
 

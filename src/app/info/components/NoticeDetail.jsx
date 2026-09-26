@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../../analytics/useAnalyticsView'
 import Tag from '../../../components/common/Tag'
 import InfoDetailHeader from './InfoDetailHeader'
 import OverflowMarquee from './OverflowMarquee'
@@ -7,6 +8,7 @@ import * as S from './NoticeDetail.styles'
 
 export default function NoticeDetail({ notice, onBack }) {
   const { t } = useTranslation()
+  useAnalyticsView('notice_opened', Boolean(notice), notice?.notice_id, { notice_id: notice?.notice_id, notice_type: notice?.type?.toLowerCase(), page_name: 'notice' })
   if (!notice) return null
 
   return (

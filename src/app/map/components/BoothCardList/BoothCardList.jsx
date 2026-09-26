@@ -49,7 +49,7 @@ export default function BoothCardList({
         const directions = booth.directions
 
         const selectBooth = () => {
-          onSelectBooth(booth.booth_id)
+          onSelectBooth(booth.booth_id, booth)
         }
 
         const selectBoothWithKeyboard = (event) => {

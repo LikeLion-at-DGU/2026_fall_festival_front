@@ -1,3 +1,6 @@
+import { trackEvent } from '../../../../analytics/analytics'
+import { festivalDay, boothType } from '../../../../analytics/policy'
+import { useAnalyticsView } from '../../../../analytics/useAnalyticsView'
 import LanternViewTab from '../LanternViewTab/LanternViewTab'
 import { useOptionalMapContext } from '../../context/MapProvider'
 import { useEffect, useState } from 'react'
@@ -24,6 +27,8 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
     ? detail : null
   const booth = currentDetail?.booth ?? null
   const isLoading = currentDetail == null
+  useAnalyticsView('booth_detail_viewed', Boolean(booth), boothId, { booth_id: booth?.booth_id, booth_type: boothType(booth), festival_day: festivalDay(selectedDate) }, false)
+  useAnalyticsView('site_error_shown', Boolean(currentDetail?.errorKey), boothId, { error_type: 'load_failed' })
 
   useEffect(() => {
     let ignore = false
@@ -224,6 +229,7 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
                     <S.Section>
                       <S.Label>{t('map.instagram')}</S.Label>
                       <S.Instagram
+                        onClick={() => trackEvent('booth_external_link_clicked', { booth_id: booth.booth_id, link_type: 'instagram' })}
                         href={`https://www.instagram.com/${encodeURIComponent(booth.instagram_id)}/`}
                         target="_blank"
                         rel="noopener noreferrer"

@@ -1,3 +1,4 @@
+import { trackEvent } from '../../../analytics/analytics'
 import { useNavigate } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
 import { useTranslation } from '../../../i18n/useTranslation'
@@ -93,7 +94,7 @@ export default function NoticeMarquee({ notices = [], isLoading = false, isError
         : null
 
   return (
-    <Wrapper type="button" aria-label={t('home.viewNotices')} onClick={() => navigate('/info?tab=notice')}>
+    <Wrapper type="button" aria-label={t('home.viewNotices')} onClick={(event) => { const id = event.target.closest('[data-notice-id]')?.dataset.noticeId; trackEvent('rolling_notice_clicked', id ? { notice_id: id } : {}); navigate('/info?tab=notice') }}>
       <IconBox>
         <NoticeIcon />
       </IconBox>
@@ -103,7 +104,7 @@ export default function NoticeMarquee({ notices = [], isLoading = false, isError
         {message ? <Item role="status">{message}</Item> : [0, 1].map((loop) => (
           <Rolling key={loop} aria-hidden={loop === 1 ? 'true' : undefined}>
             {ordered.map((notice) => (
-              <Item key={notice.notice_id}>{notice.title}</Item>
+              <Item key={notice.notice_id} data-notice-id={notice.notice_id}>{notice.title}</Item>
             ))}
           </Rolling>
         ))}
