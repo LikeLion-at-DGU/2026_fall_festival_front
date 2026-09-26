@@ -1,3 +1,4 @@
+import { trackEvent } from '../../../analytics/analytics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
@@ -200,6 +201,8 @@ export default function AdBanner() {
   }
 
   const handleClick = (banner) => (event) => {
+    trackEvent('banner_clicked', { banner_id: banner.id, destination_type: banner.href ? 'external' : banner.boothId ? 'booth' : 'collab' })
+    if (banner.boothId) trackEvent('booth_selected', { booth_id: banner.boothId, booth_type: 'unknown', selection_source: 'banner' })
     if (banner.href) {
       window.open(banner.href, '_blank', 'noopener,noreferrer')
       return

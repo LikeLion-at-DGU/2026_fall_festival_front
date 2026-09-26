@@ -1,3 +1,4 @@
+import { trackEvent } from '../../../analytics/analytics'
 import { useNavigate } from 'react-router-dom'
 
 import EmptyState from '../../../components/common/EmptyState'
@@ -104,6 +105,7 @@ export default function NowPlayingCards({
                   performanceThumbnail
 
               const handleCardClick = () => {
+                trackEvent('now_playing_clicked', { performance_id: performance.performance_id })
                 if (isArtistPerformance) {
                   navigate(
                     `/performance?date=${performance.start_at.slice(

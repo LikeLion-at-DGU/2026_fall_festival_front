@@ -1,3 +1,5 @@
+import { festivalDay } from '../../../../analytics/policy'
+import { useAnalyticsView } from '../../../../analytics/useAnalyticsView'
 import { useEffect, useRef, useState } from 'react'
 import { searchBooths } from '../../../../api/map'
 import { useMapContext } from '../../context/MapProvider'
@@ -19,7 +21,7 @@ function readHistory() {
 
 export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
   const { t } = useTranslation()
-  const { listTimeOfDay, searchQuery, updateSearchQuery } = useMapContext()
+  const { selectedDate, listTimeOfDay, searchQuery, updateSearchQuery } = useMapContext()
   // 2026-09-26: 검색어를 URL(?q=)에도 싣는다. 검색 결과에서 부스를 고른 뒤 뒤로가기를 누르면
   // 이 화면이 다시 마운트되는데, 로컬 state만 쓰면 검색어가 비어 있는 첫 화면으로 돌아간다.
   // 초기값을 URL에서 읽으면 "멋사를 검색해 둔 상태"가 그대로 복원된다.
@@ -28,6 +30,8 @@ export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
   const [results, setResults] = useState([])
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
+  useAnalyticsView('booth_searched', status === 'success', results, { result_count: results.length, festival_day: festivalDay(selectedDate) })
+  useAnalyticsView('site_error_shown', status === 'error', 'search', { error_type: 'search_failed' })
   const requestRef = useRef(null)
   const composingRef = useRef(false)
   useEffect(() => () => {
@@ -137,9 +141,9 @@ export default function BoothSearchPanel({ onSelectBooth, onCancel }) {
           {status === 'loading' ? <S.Empty role="status">{t('map.searching')}</S.Empty>
             : status === 'error' ? <S.Empty role="alert">{error}</S.Empty>
             : results.length === 0 ? <S.Empty>{t('map.noSearchResults')}</S.Empty>
-            : <BoothCardList booths={results} filterBySearchTerm={false} onSelectBooth={(boothId) => {
+            : <BoothCardList booths={results} filterBySearchTerm={false} onSelectBooth={(boothId, booth) => {
               rememberSearch(keyword)
-              onSelectBooth(boothId)
+              onSelectBooth(boothId, booth)
             }} />}
 
         </section>

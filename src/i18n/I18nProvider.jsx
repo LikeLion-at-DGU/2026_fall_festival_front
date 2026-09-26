@@ -1,3 +1,4 @@
+import { languageApplied } from '../analytics/analytics'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { I18nContext } from './I18nContext'
 import { SUPPORTED_LANGUAGES, translations } from './translations'
@@ -27,6 +28,7 @@ export default function I18nProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.lang = DOCUMENT_LANGS[language]
+    languageApplied(language)
     try {
       window.localStorage.setItem(STORAGE_KEY, language)
     } catch {

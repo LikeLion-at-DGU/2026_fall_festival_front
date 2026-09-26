@@ -1,3 +1,5 @@
+import { boothType } from '../../../analytics/policy'
+import { trackEvent } from '../../../analytics/analytics'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useTranslation } from '../../../i18n/useTranslation'
@@ -168,6 +170,10 @@ export default function BoothRanking({ ranking = [], zoneIdByBoothId, isLoading 
         <Row
           as={Link}
           key={booth.booth_id}
+          onClick={() => {
+            trackEvent('ranking_booth_clicked', { booth_id: booth.booth_id, rank: booth.rank })
+            trackEvent('booth_selected', { booth_id: booth.booth_id, booth_type: boothType(booth), selection_source: 'ranking' })
+          }}
           to={buildBoothMapPath(booth.booth_id, zoneIdByBoothId?.[booth.booth_id])}
           aria-label={t('home.rankingDetail', { rank: booth.rank, name: booth.name, count: booth.lantern_count })}
         >

@@ -131,10 +131,10 @@ export default function BottomSheet() {
   // 지도 안에서 부스를 직접 골랐다 — 진입 부스 플래그를 버려서 이후로는 전부 'low'로 열린다.
   // 검색 화면을 닫지 않는 것은 의도다(setIsSearching 같은 게 사라진 이유): 검색 결과에서 고른
   // 부스는 URL에 q를 남겨 둬야 뒤로가기했을 때 그 검색어 상태로 돌아온다.
-  const handleSelectBooth = (id) => {
+  const handleSelectBooth = (id, booth) => {
     entryBoothIdRef.current = null
     setSearchTerm('')
-    setSelectedBoothId(id)
+    setSelectedBoothId(id, isSearching ? 'search' : 'booth_list', booth)
     setSheetTab('info')
   }
 

@@ -1,3 +1,5 @@
+import { festivalDay } from '../analytics/policy'
+import { trackEvent } from '../analytics/analytics'
 import { apiClient } from './client'
 
 const COUPON_REWARD = '가온누리 3000원 쿠폰'
@@ -21,6 +23,8 @@ export function normalizeCoupon(rawCoupon) {
 
 export async function issueCoupon() {
   const { data } = await apiClient.post('/api/coupons/issue/')
+  if (data?.success === false || !data?.coupon_id || !data?.issued_date || !data?.status) throw new Error('Invalid coupon issue response')
+  trackEvent('ticket_issued', { ticket_type: 'gaonuri_coupon', festival_day: festivalDay(data.issued_date), page_name: 'ticket' })
   return normalizeCoupon(data)
 }
 
@@ -40,5 +44,7 @@ export async function useCoupon(couponId, verifyCode) {
   const { data } = await apiClient.post(`/api/coupons/${couponId}/use/`, {
     verify_code: verifyCode,
   })
+  if (data?.success === false || data?.data?.status?.toLowerCase() !== 'used' || !data?.data?.used_at) throw new Error('Invalid coupon use response')
+  trackEvent('ticket_redeemed', { ticket_type: 'gaonuri_coupon', page_name: 'ticket' })
   return data?.data
 }

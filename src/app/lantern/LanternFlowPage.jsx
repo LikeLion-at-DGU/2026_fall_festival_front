@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../analytics/useAnalyticsView'
 'use client'
 import { useTranslation } from '../../i18n/useTranslation'
 
@@ -34,6 +35,7 @@ export default function LanternFlowPage() {
   const [isNewCoupon, setIsNewCoupon] = useState(false)
   const [isCouponListOpen, setIsCouponListOpen] = useState(false)
   const [couponError, setCouponError] = useState('')
+  useAnalyticsView('site_error_shown', Boolean(couponError), 'coupon', { page_name: 'ticket', error_type: 'coupon_failed' })
 
   useEffect(() => {
     if (!isLoggedIn) {

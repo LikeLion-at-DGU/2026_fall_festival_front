@@ -1,3 +1,5 @@
+import { festivalDay } from '../../../../analytics/policy'
+import { useAnalyticsView } from '../../../../analytics/useAnalyticsView'
 import { useMapContext } from '../../context/MapProvider'
 import { BOOTH_FILTER_CHIPS } from '../../../../constants/categories'
 import BoothCardList from '../BoothCardList/BoothCardList'
@@ -8,9 +10,11 @@ import { useTranslation } from '../../../../i18n/useTranslation'
 
 export default function BoothListPanel({ onSelectBooth, isSearching, onOpenSearch, onCancelSearch }) {
   const { t } = useTranslation()
-  const { booths, isLoading, isError, listError, listTimeOfDay, setListTimeOfDay,
+  const { selectedDate, booths, isLoading, isError, listError, listTimeOfDay, setListTimeOfDay,
     selectedCategory, setSelectedCategory } = useMapContext()
 
+  useAnalyticsView('booth_list_opened', !isSearching, 'list', { festival_day: festivalDay(selectedDate) })
+  useAnalyticsView('site_error_shown', !isSearching && isError, 'list', { error_type: 'load_failed' })
   if (isSearching) {
     return <BoothSearchPanel onSelectBooth={onSelectBooth} onCancel={onCancelSearch} />
   }

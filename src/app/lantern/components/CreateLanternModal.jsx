@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../../analytics/useAnalyticsView'
 import { useEffect, useRef, useState } from 'react';
 import Modal from '../../../components/common/Modal'
 import AlertModal from '../../../components/common/AlertModal'
@@ -33,6 +34,7 @@ export default function CreateLanternModal({
   currentCount = 0, // 현재 작성한 등불 개수
   presetBoothId = null, // 부스 상세에서 진입한 경우 미리 선택돼 있어야 할 부스 ID
 }) {
+  useAnalyticsView('lantern_write_started', isOpen, 'write', { page_name: 'lantern' })
   const { t } = useTranslation()
   const [selectedBooth, setSelectedBooth] = useState('');
   const [nickname, setNickname] = useState('');

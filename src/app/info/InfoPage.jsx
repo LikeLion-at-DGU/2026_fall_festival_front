@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../analytics/useAnalyticsView'
 import { useEffect, useState } from 'react'
 import {
   Navigate,
@@ -262,8 +263,11 @@ export default function InfoPage() {
     return () => controller.abort()
   }, [lostItemId])
 
+  useAnalyticsView('site_error_shown', Boolean(noticeId ? noticeDetail.error && !noticeDetail.notFound : tab === 'notice' && noticeList.error), 'notice', { error_type: 'notice_load_failed' })
+  useAnalyticsView('site_error_shown', Boolean(lostItemId ? lostItemDetail.error && !lostItemDetail.notFound : tab === 'lostfound' && lostItemList.error), 'lost_item', { error_type: 'lost_item_load_failed' })
+
   const changeTab = (nextTab) => {
-    setSearchParams(nextTab === 'collab' ? {} : { tab: nextTab })
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); if (nextTab === 'collab') next.delete('tab'); else next.set('tab', nextTab); return next })
   }
 
   if (collabSlug && !selectedCollab) {

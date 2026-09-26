@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../../../analytics/useAnalyticsView'
 import Modal from '../../../../components/common/Modal'
 import { FESTIVAL_DATES } from '../../../../constants/festivalDates'
 import { useTranslation } from '../../../../i18n/useTranslation'
@@ -12,6 +13,7 @@ const STATUS_LABELS = {
 }
 
 export default function MyCouponListModal({ isOpen, onClose, coupons = [], onSelect }) {
+  useAnalyticsView('ticket_viewed', isOpen, 'tickets', { ticket_type: 'gaonuri_coupon', page_name: 'ticket' })
   const { t } = useTranslation()
   const couponsByDate = new Map(coupons.map((coupon) => [coupon.date, coupon]))
   const receivedCoupons = FESTIVAL_DATES.map((date, index) => ({

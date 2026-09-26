@@ -1,3 +1,4 @@
+import { useAnalyticsView } from '../../analytics/useAnalyticsView'
 import { useEffect, useState } from 'react'
 import TopHeader from '../../components/common/TopHeader'
 
@@ -81,6 +82,9 @@ export default function HomePage() {
   const boothZones = useHomeData(getBoothZoneSummary)
   const boothRanking = useHomeData(getBoothRanking)
   const nowPlaying = useHomeData(getNowPlaying)
+  useAnalyticsView('site_error_shown', notices.isError, 'notices', { error_type: 'notice_load_failed' })
+  useAnalyticsView('site_error_shown', boothRanking.isError, 'ranking', { error_type: 'ranking_load_failed' })
+  useAnalyticsView('site_error_shown', nowPlaying.isError, 'performance', { error_type: 'performance_load_failed' })
 
   useEffect(() => {
     let timeoutId
