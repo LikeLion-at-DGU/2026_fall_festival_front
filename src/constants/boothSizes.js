@@ -127,6 +127,25 @@ export function getBoothTopHeight(size, override) {
   return getBoothSizeSpec(size, override).topHeight
 }
 
+// 부스 마커(등불)가 뜨는 높이(m, 부스 지면 기준) — 2026-09-26 추가(이슈 #287).
+//
+// 원래 scene/zones/BoothLantern.jsx의 기본 매개변수에만 있던 값인데, 카메라가 부스를 화면에 담을 때
+// 같은 값을 알아야 해서(scene/camera/getBoothFocus.js) 치수의 단일 출처인 이 파일로 올렸다.
+// 두 값이 갈라지면 등불은 화면 위로 잘리는데 카메라는 천막만 꽉 채우게 된다.
+//
+// 5.5m으로 정한 근거: 가장 높은 구조물(플리마켓 차양막 4.6m)보다 높고, 큰 천막(3.3m) 위로 2.2m 떠 있다.
+// 구조물이 더 높아지면 이 값도 같이 올려야 한다.
+export const BOOTH_MARKER_HOVER_HEIGHT = 5.5
+
+// 카메라 구도를 잡을 때 "부스 위로 이만큼까지 비워둔다"고 보는 높이(m, 부스 지면 기준).
+//
+// 등불은 화면상 크기가 고정이라(scene/zones/useFloatingMarker.js) 월드 높이가 카메라 거리에 비례해 변한다.
+// 등불 원점(술 끝)이 BOOTH_MARKER_HOVER_HEIGHT에 오고 그 위로 등불 높이(기본 배율에서 거리 25m일 때 약 1.0m,
+// 14m일 때 약 0.56m)만큼 올라가므로, 초점 거리 범위(getBoothFocus.js의 14~25m)에서 꼭대기는 6.1~6.5m 사이다.
+// 거리에 따라 변하는 값을 거리 계산에 넣으면 순환이 되니, 그중 가장 높은 쪽 하나를 상수로 쓴다 —
+// 가까울 때는 위쪽 여백이 조금 더 생기는 쪽이라 등불이 잘릴 일이 없다.
+export const BOOTH_MARKER_FRAME_HEIGHT = 6.5
+
 // 바닥에 드리우는 직사각형 크기(m) — 부스끼리 겹치는지 볼 때 쓴다.
 // 큰 천막 6.5 × 3.5, 작은 천막 3.2 × 3.2, 푸드트럭 5.2 × 3.2(어닝 포함), 플리마켓은 구역 크기 그대로.
 // rotation이 0일 때 width가 x축.

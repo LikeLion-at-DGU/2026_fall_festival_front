@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useTimeOfDay } from '../environment/TimeOfDayContext'
+import { BOOTH_MARKER_HOVER_HEIGHT } from '../../../../constants/boothSizes'
 import {
   LANTERN_BODY_CENTER_Y,
   LANTERN_HALO_SIZE,
@@ -23,6 +24,13 @@ import { useFloatingMarker } from './useFloatingMarker'
 // 그대로인 것(BoothPin과 같은 규칙 — useFloatingMarker.js): 화면상 크기 고정, 위아래로 떠다님, 좌우만 카메라를 봄,
 //   클릭하면 부스 바텀시트. 원점(술 끝)이 hoverHeight 높이에 오는 것도 같아서 천막과 겹치지 않는 높이(5.5m)를 그대로 쓴다.
 //
+// 2026-09-26(이슈 #287): 두 가지가 바뀌었다.
+//   - 매달리는 자리: 첫 천막 위 → 부스가 쓰는 천막 전체의 가운데(ZoneBooths가 getBoothCenter로 계산해서 넘긴다).
+//     이 파일은 받은 position에 그리기만 하므로 코드 변화는 없다.
+//   - hoverHeight 기본값(5.5)을 constants/boothSizes.js의 BOOTH_MARKER_HOVER_HEIGHT에서 가져온다.
+//     카메라가 부스를 화면에 담을 때 등불 높이를 알아야 해서(camera/getBoothFocus.js) 두 곳이 같은 값을
+//     봐야 한다 — 갈라지면 등불은 화면 위로 잘리는데 카메라는 천막만 꽉 채운다.
+//
 // 왜 형제 컴포넌트인가(BoothMarker 안에 넣지 않은 이유)는 BoothPin과 같다 — map-section-scope-and-roles.md의 B안
 // 합의대로 BoothMarker는 "천막 + 라벨 앵커"까지만 책임지고, 마커는 ZoneBooths가 같은 좌표에 나란히 놓는다.
 //
@@ -41,7 +49,7 @@ export default function BoothLantern({
   colors,
   count = null,
   scale = 2.2,
-  hoverHeight = 5.5,
+  hoverHeight = BOOTH_MARKER_HOVER_HEIGHT,
   constantSize = true,
   refDist = 180,
   tiltRatio = 0,

@@ -2,7 +2,7 @@ import BoothMarker from './BoothMarker'
 import BoothPin from './BoothPin'
 import BoothLantern from './BoothLantern'
 import { BOOTH_LANTERN_PROPS, BOOTH_PIN_PREVIEW, BOOTH_PIN_PROPS } from './boothPinPreview'
-import { getBoothTents } from './boothTents'
+import { getBoothCenter, getBoothCenterTent, getBoothTents } from './boothTents'
 import { useOptionalMapContext } from '../../context/MapProvider'
 import {
   getBoothLanternCount,
@@ -58,6 +58,14 @@ import {
 //   - 숫자: 부스는 등불 개수(0 포함), 시설은 null(숫자 없는 빈 등불 — 시설은 등불을 받을 수 없다).
 // 예전 핀은 ?marker=pin 으로 비교해 볼 수 있다(boothPinPreview.js). 기디가 등불을 확정하면 핀과 그 스위치를 정리한다.
 //
+// 2026-09-26(이슈 #287): 마커가 붙는 자리를 "첫 천막" → "부스가 쓰는 천막 전체의 가운데"로 옮겼다
+// (재원 요청 "등불을 첫번째 부스(맨 앞 부스)가 아닌 부스 집합의 가운데에 위치해줘").
+// 09-24에 "마커는 부스당 1개, 첫 천막 위에"로 정했는데, 여러 동을 쓰는 부스(142동 중 66동)에서 등불이
+// 줄 맨 앞에 매달려 부스 범위를 알 수 없었다 — 디프(7동, x 방향 약 24m)가 가장 심했다.
+// 가운데를 구하는 건 boothTents.js의 getBoothCenter(왜 평균인지도 그쪽 주석에 있다)이고, 여기는 그 자리에 놓는다.
+// 같은 자리를 카메라도 타깃으로 쓴다(camera/getBoothFocus.js) — 등불과 카메라가 같은 곳을 보게 된다.
+// <Html> 이름표(?marker=label)는 천막 위에만 달 수 있어서(BoothMarker가 단다) 가운데에 가장 가까운 동을 고른다.
+//
 // booth 스키마(GET /api/booths/ 명세):
 //   - booth_id: BoothMarker key + onBoothClick(boothId)에 넘기는 값
 //   - map_x / map_y / map_elevation / rotation: Three.js 씬 좌표(m) — map_x=씬 x, map_y=씬 z,
@@ -85,9 +93,11 @@ export default function ZoneBooths({ booths = [], brightnessLevel = null, timeSl
       return null
     }
 
-    // 마커(등불)와 라벨이 붙는 대표 천막. placements는 백엔드에서 날짜·시간대·천막번호 순으로 정렬돼 오고,
-    // 없으면 부스 자신이 첫 항목이라 어느 쪽이든 "대표 좌표"와 같은 자리다.
-    const [representative] = tents
+    // 마커(등불)가 매달리는 자리 = 부스가 쓰는 천막 전체의 가운데. 한 동만 쓰는 부스는 그 천막 자리와 같다.
+    // 카메라도 같은 자리를 타깃으로 쓴다(camera/getBoothFocus.js) — 계산이 boothTents.js 한 곳에 있어서 갈라지지 않는다.
+    const center = getBoothCenter(tents)
+    // <Html> 이름표는 천막 위에만 달 수 있어서(BoothMarker가 단다) 가운데에 가장 가까운 동을 고른다.
+    const labelTent = getBoothCenterTent(tents, center)
     const handleClick = () => onBoothClick?.(booth.booth_id)
 
     return (
@@ -100,7 +110,7 @@ export default function ZoneBooths({ booths = [], brightnessLevel = null, timeSl
             size={tent.size}
             spec={tent.spec}
             label={booth.name}
-            showLabel={showLabel && tent === representative}
+            showLabel={showLabel && tent === labelTent}
             category={booth.category}
             lanternCount={booth.lantern_count}
             brightnessLevel={brightnessLevel}
@@ -109,7 +119,7 @@ export default function ZoneBooths({ booths = [], brightnessLevel = null, timeSl
         ))}
         {markerKind === 'lantern' ? (
           <BoothLantern
-            position={representative.position}
+            position={center}
             colors={getBoothMarkerStyle(booth, timeSlot)}
             count={getBoothLanternCount(booth)}
             // 부스마다 다른 위상을 줘야 등불들이 한 몸처럼 같이 출렁이지 않고 따로 논다
@@ -119,7 +129,7 @@ export default function ZoneBooths({ booths = [], brightnessLevel = null, timeSl
           />
         ) : markerKind === 'pin' ? (
           <BoothPin
-            position={representative.position}
+            position={center}
             category={booth.category}
             count={Number(booth.lantern_count) || 0}
             bobPhase={index * 0.7}

@@ -23,8 +23,9 @@ import { getBoothFocus } from './camera/getBoothFocus'
 //     → 6단계 확장), 2026-09-19부터는 부스별 lantern_count로 BoothMarker가 단계를 스스로 계산하므로
 //     기본값이 0 → null(자동)로 바뀌었다. 숫자를 넣으면 네 구역 모든 부스가 그 단계로 강제되는 개발용
 //     스위치로만 남아 있다(BoothMarker.jsx 19번 항목).
-//   - focusBooth: (선택) 카메라를 정면으로 옮길 부스 한 개(GET /api/booths/ 항목) 또는 null.
+//   - focusBooth: (선택) 카메라를 가까이 옮길 부스 한 개(GET /api/booths/ 항목) 또는 null.
 //     2026-09-24 추가 — 값이 들어오면 그 부스 앞으로 날아간다. 어디서 골랐는지는 알 필요가 없다.
+//     2026-09-26(#287): 날아가는 방향은 그 구역 기본 시점과 같고, 거리는 부스 크기에서 역산한다.
 //     null로 돌아가도 카메라를 되돌리지는 않는다(ZoneCamera 주석 참고).
 //   - onBoothClick(boothId): 3D 씬에서 부스 앵커를 레이캐스팅으로 클릭했을 때 호출
 //
@@ -115,6 +116,13 @@ import { getBoothFocus } from './camera/getBoothFocus'
 // 따라가지 않는다. 그래서 zoneId가 바뀔 때마다 ZoneCamera가 카메라 위치와 OrbitControls 타깃을
 // 직접 옮긴다. (09-20 처음 분리할 때는 타깃을 OrbitControls의 target prop으로 넘겼는데,
 // 같은 날 3차 카메라 잠금에서 ref 방식으로 바꿨다 — 이유는 아래 ZoneCamera 주석 참고.)
+//
+// 2026-09-26(이슈 #287): 부스를 고를 때의 카메라 방향도 이 표에서 나온다.
+//   부스 초점의 방위각·내려보는 각을 여기 position/target에서 역산해서 쓴다(getPresetOrbit).
+//   즉 "부스를 고르면 지금 보던 방향 그대로 가까이 간다"가 되고, 구역 시점을 다시 튜닝하면
+//   부스 초점도 자동으로 따라온다 — 두 곳에 같은 각도를 적어두고 갈라지는 걸 막으려고 이렇게 했다.
+//   부스가 놓인 방향과 구역 시점이 정반대인 구역만 focusAzimuthOffset으로 뒤집는다(지금은 만해광장 한 곳).
+//   키가 없으면 0(구역 시점과 같은 방향)이다.
 const ZONE_CAMERAS = {
   // 혜화관(2026-09-21 튜닝, 재원 요청 "왼쪽·뒤로 이동, 45° 돌려서 지도 모서리부터 쭉 보이게"):
   //   정남쪽에서 정북을 보던 시점([10,140,90])을 y축 기준 45° 돌려 남서쪽 모서리에서 북동쪽을
@@ -147,7 +155,12 @@ const ZONE_CAMERAS = {
   //   2026-09-21 지도 2배(Zone3Scene의 MAP_SCALE): 위 거리·bbox·여백 숫자는 2배 전 기준이다. 카메라 위치와
   //   타깃을 원점 기준으로 똑같이 2배 해서(거리 82 → 164, 타깃 높이도 3 → 6) 화면 구도는 그대로고,
   //   실제 크기인 부스만 상대적으로 작아진다. 확대 여유도 생겼다(최소 거리 70까지 2.3배).
-  zone3: { position: [100.6, 129.4, 55.2], target: [7, 6, 1.2] },
+  //   2026-09-26 focusAzimuthOffset 180(이슈 #287): 네 구역 중 여기만 부스 초점을 반대쪽에서 잡는다.
+  //   광장 부스는 관람석(북쪽 능선)을 등지고 코트 쪽(남쪽)을 보도록 놓여 있는데, 구역 기본 시점은 남동쪽
+  //   방위각 60°에서 북서쪽을 내려다본다 — 그 방향 그대로 다가가면 부스 뒷면과 뒤에 선 관람석 능선만 보이고
+  //   천막 앞이 능선에 가려진다(부스 21곳 렌더 비교에서 만해광장 4곳 전부 가려졌다).
+  //   180° 뒤집어 북서쪽에서 보면 광장이 열린 방향으로 부스를 마주 보게 되고 가려지는 곳이 없다.
+  zone3: { position: [100.6, 129.4, 55.2], target: [7, 6, 1.2], focusAzimuthOffset: 180 },
   // 원흥관(2026-09-20 첫 값 → 2026-09-21 재원 요청 "반대쪽에서"로 변경):
   //   본동의 원래 정면(창이 촘촘한 면)은 -z 쪽인데, 처음 잡은 시점(방위각 0°, 카메라가 +z 쪽)은 건물 후면과
   //   그 앞 광장을 보고 있었다. 방위각 180°로 돌려(카메라가 -z 쪽) 정면을 마주 보게 했고, 후면 광장에 있던
@@ -191,9 +204,16 @@ const DEFAULT_CAMERA = ZONE_CAMERAS.zone1
 //   - 최대 400: 가장 먼 기본 시점(원흥관 316)보다 여유가 있는 값. 기본 거리가 최대값보다 크면
 //     OrbitControls가 첫 update()에서 끌어당겨 카메라가 튕겨 들어오므로 그 조건을 지켜야 한다.
 //     Canvas의 far가 2000이라 이 거리에서도 잘리지 않는다.
+// 2026-09-26 최소 20 → 14(이슈 #287, 재원 요청 "부스 선택시 카메라 더 확대하기"):
+//   부스 초점 거리를 부스 크기에서 역산하게 바뀌면서(camera/getBoothFocus.js) 한 동만 쓰는 부스는
+//   16m까지 들어온다. OrbitControls는 minDistance보다 가까운 카메라를 첫 update()에서 밀어내므로,
+//   초점 거리의 아래 한계(BOOTH_FOCUS_MIN_DISTANCE = 14)보다 이 값이 크면 구도가 그만큼 깨진다.
+//   그래서 둘을 14로 맞췄다 — 14는 큰 천막(발자국 6.5 × 3.5, 높이 3.3)이 폰 화면 세로 절반을 채우는 거리다.
+//   ※ 위 "만해광장·원흥관은 건물을 뚫을 수 있다"는 주의는 손으로 당길 때 이야기이고 그대로 유효하다.
+//     20에서도 있던 문제이고 더 열렸다 — 부스 초점은 건물에 가려지지 않는 방향을 골라 쓰므로 해당되지 않는다.
 // (옛 값 기록: MIN 70 = 회전이 잠겨 있던 시절 "부스 지붕이 화면을 채우기 직전"으로 잡은 값.
 //  MAX는 220 → 300 → 360으로, 혜화관 250·원흥관 316 기본 시점이 생길 때마다 올렸다.)
-const MIN_DISTANCE = 20      // 가장 가까이 당겼을 때 (부스 한 동과 조명끈이 보이는 거리)
+const MIN_DISTANCE = 14      // 가장 가까이 당겼을 때 (부스 한 동이 화면 절반을 채우는 거리)
 const MAX_DISTANCE = 400     // 가장 멀리 뺐을 때 (구역 전체 + 여백)
 // 2026-09-25: 조작이 바뀌면서(한 손가락 = 이동) 이 값이 주 조작의 한계가 됐다. 예전에는 이동이
 // 두 손가락 보조 제스처라 벽에 닿을 일이 거의 없었다. 일단 30으로 써 보고 답답하면 올린다.
@@ -217,7 +237,30 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-// 부스를 고르면 그 부스 정면으로 날아가는 시간(ms)과 가속 곡선(2026-09-24).
+// 구역 프리셋(position + target) → 그 시점의 방위각·내려보는 각(도). 2026-09-26 추가(이슈 #287).
+//
+// 프리셋은 "카메라를 여기 두고 저기를 봐라"는 좌표로만 적혀 있는데, 부스 초점은 같은 방향에서
+// 거리만 줄인 자리가 필요해서 각도로 바꿔 쓴다. 각도를 ZONE_CAMERAS에 따로 적어두지 않고 매번
+// 역산하는 이유 — 같은 값을 두 곳에 적으면 구역 시점을 튜닝할 때 한쪽만 고쳐서 갈라진다.
+//
+// 방위각은 atan2(dx, dz)다: 0° = 카메라가 타깃의 +z 쪽, +90° = +x 쪽.
+// three의 y축 회전과 같은 기준이라 천막 rotation·등불 yaw 계산과 부호가 어긋나지 않는다.
+// (확인: 혜화관 -45° / 팔정도 -135° / 만해광장 60° / 원흥관 180°, 내려보는 각은 네 구역 모두 48.8°)
+function getPresetOrbit(preset) {
+  const dx = preset.position[0] - preset.target[0]
+  const dy = preset.position[1] - preset.target[1]
+  const dz = preset.position[2] - preset.target[2]
+  const distance = Math.hypot(dx, dy, dz)
+  return {
+    azimuthDeg: (Math.atan2(dx, dz) * 180) / Math.PI,
+    // distance가 0인 프리셋은 없지만(카메라와 타깃이 같은 점) 0으로 나누면 NaN이 카메라에 들어가서
+    // 화면이 통째로 사라지므로 막아둔다.
+    elevationDeg: distance > 0 ? (Math.asin(dy / distance) * 180) / Math.PI : 0,
+    distance,
+  }
+}
+
+// 부스를 고르면 그 부스 앞으로 날아가는 시간(ms)과 가속 곡선(2026-09-24).
 // 순간이동시키면 사용자가 "어디로 간 거지?"가 된다 — 지도에서 위치 감각을 잃으면 돌아올 방법이 없다.
 // 0.7초는 이동한 게 보이면서도 답답하지 않은 정도다. easeInOutCubic으로 시작과 끝을 부드럽게 한다.
 const FOCUS_FLIGHT_MS = 700
@@ -236,6 +279,13 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
   // 진행 중인 카메라 이동. null이면 이동 중이 아니다.
   const flightRef = useRef(null)
 
+  // 부스 초점 계산에 쓸 구역 프리셋(2026-09-26). 값은 위 preset과 같은데 ref로 한 번 더 들고 있는 이유 —
+  // 아래 부스 초점 useEffect의 의존성 배열에 preset을 넣으면 구역을 바꿀 때도 그 effect가 다시 돌아서,
+  // 방금 기본 시점으로 되돌린 카메라를 (아직 선택이 남아 있으면) 다른 구역 부스 좌표로 도로 끌고 간다.
+  // 아래 "구역이 바뀌면 되돌린다" effect가 이 ref를 갱신하고, 그 effect가 먼저 선언돼 있어서
+  // (첫 렌더에 /map?booth= 로 들어오는 경우까지) 초점 계산은 늘 지금 구역 값을 본다.
+  const presetRef = useRef(preset)
+
   // 구역이 바뀌면 그 구역 기본 시점으로 되돌린다.
   // (zone1에서 확대해둔 채 zone5로 넘어가도 zone5 기본 화면에서 시작한다)
   //
@@ -246,6 +296,7 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
   useEffect(() => {
     flightRef.current = null
     panCenterRef.current = preset.target
+    presetRef.current = preset
     camera.position.set(...preset.position)
     const controls = controlsRef.current
     if (controls) {
@@ -256,11 +307,18 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
     }
   }, [camera, controlsRef, preset])
 
-  // 2026-09-24: 부스를 고르면 그 부스 정면으로 카메라를 옮긴다.
-  // 어디서 골랐는지는 상관없다 — 3D 핀 클릭, 바텀시트 목록·검색 선택, 홈 부스 랭킹(/map?booth=)이
+  // 2026-09-24: 부스를 고르면 그 부스 앞으로 카메라를 옮긴다.
+  // 어디서 골랐는지는 상관없다 — 등불 클릭, 바텀시트 목록·검색 선택, 홈 부스 랭킹(/map?booth=)이
   // 전부 selectedBoothId를 바꾸고, MapShell이 그 부스를 찾아 focusBooth로 내려준다.
   //
-  // 목표 위치 계산은 camera/getBoothFocus.js(순수 함수)가 하고, 여기서는 "그 자리까지 어떻게 갈지"만 맡는다.
+  // 목표 위치 계산은 camera/getBoothFocus.js(순수 함수)가 하고, 여기서는 두 가지만 맡는다:
+  // "어떤 시점·화면을 기준으로 계산할지"(아래 인자)와 "그 자리까지 어떻게 갈지"(아래 useFrame).
+  //
+  // 2026-09-26(이슈 #287): 예전에는 지금 카메라 위치를 넘겨서 "천막 앞뒤 중 가까운 쪽"을 고르게 했는데,
+  // 그래서 같은 부스를 눌러도 어디서 눌렀는지에 따라 카메라가 반대쪽에 섰다(기준이 없다는 느낌의 원인).
+  // 이제는 구역 기본 시점의 각도(getPresetOrbit) + 구역별 오프셋을 넘긴다 — 누른 위치와 무관하게 늘 같은 방향이다.
+  // 화면비(aspect)와 화각(fov)까지 넘기는 이유: 거리를 부스 크기에서 역산하는데, 같은 부스라도 폰 세로 화면에서는
+  // 가로가 좁아 더 빠져야 한다. 회전을 마치고 화면을 돌리면(가로 모드) 다음 선택부터 새 비율로 계산된다.
   //
   // 2026-09-26: 상세를 닫으면(뒤로가기 / ← 버튼) 구역 기본 시점으로 되돌린다 — 기획 요구 "지도 축소".
   // 예전에는 되돌리지 않았는데, 뒤로가기로 목록에 올라왔는데 지도만 부스에 붙어 있으면
@@ -291,6 +349,19 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
         toTarget,
       }
     }
+
+    const zonePreset = presetRef.current
+    const orbit = getPresetOrbit(zonePreset)
+    const focus = getBoothFocus(focusBooth, {
+      azimuthDeg: orbit.azimuthDeg + (zonePreset.focusAzimuthOffset ?? 0),
+      elevationDeg: orbit.elevationDeg,
+      fovDeg: camera.fov,
+      aspect: camera.aspect,
+      minDistance: MIN_DISTANCE,
+    })
+    if (!focus) return
+
+    startFlight(focus.position, focus.target)
 
     if (!focusBooth) {
       if (!previousFocus) return
