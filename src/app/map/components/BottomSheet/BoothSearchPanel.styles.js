@@ -13,7 +13,7 @@ export const SearchRow = styled.form`
   align-items: center;
   gap: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #737373;
+  border-bottom: 1px solid ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
 `
 export const InputWrapper = styled.div`
   display: flex;
@@ -21,10 +21,11 @@ export const InputWrapper = styled.div`
   flex: 1;
   min-width: 0;
   height: 40px;
-  border: 1px solid #272727;
+  border: 1px solid ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
   border-radius: 8px;
 `
 export const Input = styled.input`
+  flex: 1;
   width: 100%;
   min-width: 0;
   border: 0;
@@ -32,17 +33,40 @@ export const Input = styled.input`
   background: transparent;
   font: inherit;
   font-size: 16px;
-  color: #272727;
-  &::placeholder { color: #272727; opacity: 1; }
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+  &::placeholder {
+    color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+    opacity: 1;
+  }
+
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+`
+export const ClearInputButton = styled.button`
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+  cursor: pointer;
+
+  svg {
+    display: block;
+  }
 `
 export const TextButton = styled.button`
   padding: 4px 0;
   border: 0;
   background: transparent;
-  color: #555;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
   font-size: 14px;
   white-space: nowrap;
-  &:disabled { opacity: 0.45; cursor: default; }
+  &:disabled { opacity: 1; cursor: default; }
 `
 export const IconButton = styled.button`
   width: 36px;
@@ -55,7 +79,7 @@ export const IconButton = styled.button`
   background: transparent;
 `
 export const CloseMark = styled.span`
-  color: #9F9C99;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
   font-size: 26px;
   line-height: 1;
   font-weight: 300;
@@ -69,6 +93,7 @@ export const HistoryHeader = styled.div`
 export const Heading = styled.h2`
   margin: 0;
   padding-top: 12px;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
   font-size: 14px;
   font-weight: 600;
 `
@@ -88,4 +113,14 @@ export const TermButton = styled(TextButton)`
   overflow-wrap: anywhere;
   font-size: 16px;
 `
-export const Empty = styled.p`padding: 8px; font-size: 14px; color: #737373;`
+export const Empty = styled.p`
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+`

@@ -7,13 +7,13 @@ import * as S from './BottomSheet.styles'
 export default function BottomSheet() {
   const {
     isSheetOpen, selectedBoothId, setSelectedBoothId, sheetTab, setSheetTab, selectedDate,
-    setSearchTerm, listTimeOfDay, searchQuery, openSearch, goBack,
+    setSearchTerm, listTimeOfDay, searchQuery, openSearch, openBoothList, goBack,
   } = useMapContext()
   // 검색 화면인지는 URL이 정한다(MapProvider). 부스를 고르면 q가 남아 있어도 상세를 보여줘야 하므로
   // booth가 없을 때만 검색 화면이다 — 이 값이 true면 아래에서 드래그 핸들도 숨긴다.
   const isSearching = searchQuery != null && selectedBoothId == null
   const [sheetHeight, setSheetHeight] = useState(null)
-  const [snapPosition, setSnapPosition] = useState('middle')
+  const [snapPosition, setSnapPosition] = useState('low')
   const [isDragging, setIsDragging] = useState(false)
   const sheetRef = useRef(null)
   const dragRef = useRef(null)
@@ -40,13 +40,13 @@ export default function BottomSheet() {
     if (contentRef.current) contentRef.current.scrollTop = 0
   }, [selectedBoothId])
 
-  // 목록으로 돌아오면(뒤로가기 / 「취소」) 시트를 목록 기본 높이로 되돌린다.
+  // 목록으로 돌아오면(뒤로가기 / 「취소」) 시트를 최하단 높이로 되돌린다.
   // 상세를 보려고 끌어올린 높이가 그대로 남으면 목록이 화면을 덮은 채로 돌아와서,
   // "축소된 지도로 돌아왔다"는 느낌이 나지 않는다.
   useEffect(() => {
     if (selectedBoothId != null || isSearching) return
     setSheetHeight(null)
-    setSnapPosition('middle')
+    setSnapPosition('low')
   }, [selectedBoothId, isSearching])
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function BottomSheet() {
     const originalTransition = sheet.style.transition
     sheet.style.transition = 'none'
     const points = [
-      { position: 'low', cssHeight: 'var(--collapsed-height)' },
+      { position: 'low', cssHeight: 'var(--low-height)' },
       { position: 'middle', cssHeight: 'var(--middle-height)' },
       { position: 'high', cssHeight: 'calc(100dvh - var(--sheet-top-gap))' },
     ].map(({ position, cssHeight }) => {
@@ -138,11 +138,19 @@ export default function BottomSheet() {
     setSheetTab('info')
   }
 
+  const handleBackToBoothList = () => {
+    entryBoothIdRef.current = null
+    setSearchTerm('')
+    setSheetTab('info')
+    openBoothList()
+  }
+
   return (
     <S.Sheet
       ref={sheetRef}
       $snapPosition={snapPosition}
       $isDragging={isDragging}
+      $isSearching={isSearching}
       style={{ height: sheetHeight == null ? undefined : `${sheetHeight}px` }}
     >
       {!isSearching && (
@@ -153,7 +161,7 @@ export default function BottomSheet() {
           onPointerCancel={handleDragEnd}
           onLostPointerCapture={handleDragEnd}
         >
-          <S.HandleBar />
+          <S.HandleBar $isNight={listTimeOfDay === 'night'} />
         </S.DragHandle>
       )}
       <S.Content ref={contentRef}>
@@ -169,7 +177,7 @@ export default function BottomSheet() {
             openSearch()
           }}
           // 「취소」도 뒤로가기와 같은 동작이어야 버튼과 제스처가 서로 다른 데로 가지 않는다.
-          // 돌아간 뒤 높이는 아래 이펙트가 목록 기준('middle')으로 맞춘다.
+          // 돌아간 뒤 높이는 아래 이펙트가 목록 기준('low')으로 맞춘다.
           onCancelSearch={() => {
             setSearchTerm('')
             goBack()
@@ -178,7 +186,7 @@ export default function BottomSheet() {
       ) : (
         <BoothDetailPanel
           boothId={selectedBoothId}
-          onBack={goBack}
+          onBack={handleBackToBoothList}
           sheetTab={sheetTab}
           setSheetTab={setSheetTab}
           selectedDate={selectedDate}

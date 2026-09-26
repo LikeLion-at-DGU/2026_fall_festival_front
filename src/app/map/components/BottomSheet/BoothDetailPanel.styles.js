@@ -211,8 +211,15 @@ export const Poster = styled.img`
 `
 
 export const Message = styled.p`
-  padding: 16px 0;
-  color: #737373;
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
 `
 
 export const Retry = styled.button`

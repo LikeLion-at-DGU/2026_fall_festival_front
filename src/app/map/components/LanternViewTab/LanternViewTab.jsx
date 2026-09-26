@@ -8,7 +8,6 @@ import { useAuthStore } from '../../../../store/useAuthStore'
 import { getBoothLanterns, updateLantern, deleteLantern, reportLantern } from '../../../../api/lantern'
 import { useOptionalMapContext } from '../../context/MapProvider'
 import { getCurrentFestivalDate } from '../../../lantern/utils/getCurrentFestivalDate'
-import EmptyState from '../../../../components/common/EmptyState'
 import LanternCard from '../../../lantern/components/LanternCard'
 import LoginModal from '../../../auth/LoginModal'
 import { useTranslation } from '../../../../i18n/useTranslation'
@@ -94,18 +93,35 @@ const Action = styled.button`
   margin: 8px 0;
   cursor: pointer;
 `
+const StatusMessage = styled.p`
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+  font-family: Pretendard;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+`
 
 // 부스·날짜·로그인 상태가 바뀌면 목록과 필터를 초기화한다.
 // selectedDate는 BoothDetailPanel이 props로 넘겨준다. MapProvider 안이면 컨텍스트 값을, 둘 다 없으면 오늘 축제일을 쓴다.
-export default function LanternViewTab({ boothId, selectedDate }) {
+export default function LanternViewTab({ boothId, selectedDate, isNight = false }) {
   const map = useOptionalMapContext()
   const { isLoggedIn, accessToken } = useAuthStore()
   const date = selectedDate ?? map?.selectedDate ?? getCurrentFestivalDate()
   const key = JSON.stringify([boothId, date, isLoggedIn, accessToken])
-  return <BoothLanternList key={key} boothId={boothId} date={date} isLoggedIn={isLoggedIn} />
+  return <BoothLanternList
+    key={key}
+    boothId={boothId}
+    date={date}
+    isLoggedIn={isLoggedIn}
+    isNight={isNight}
+  />
 }
 
-function BoothLanternList({ boothId, date, isLoggedIn }) {
+function BoothLanternList({ boothId, date, isLoggedIn, isNight }) {
   const { t } = useTranslation()
   const [onlyMine, setOnlyMine] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -146,12 +162,19 @@ function BoothLanternList({ boothId, date, isLoggedIn }) {
           )}
         </CheckboxIconSlot>
       </MineFilter>
-      <LanternResults key={String(onlyMine)} boothId={boothId} date={date} mine={onlyMine} isLoggedIn={isLoggedIn} />
+      <LanternResults
+        key={String(onlyMine)}
+        boothId={boothId}
+        date={date}
+        mine={onlyMine}
+        isLoggedIn={isLoggedIn}
+        isNight={isNight}
+      />
     </section>
   )
 }
 
-function LanternResults({ boothId, date, mine, isLoggedIn }) {
+function LanternResults({ boothId, date, mine, isLoggedIn, isNight }) {
   const { t } = useTranslation()
   // 홈 랭킹 모달처럼 MapProvider 밖에서 열리면 부스 목록 갱신은 건너뛴다.
   const refreshBooths = useOptionalMapContext()?.refreshBooths
@@ -286,12 +309,16 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
           </li>
         ))}
       </List>
-      {status === 'loading' && <p role="status">{t('map.loadingLanterns')}</p>}
+      {status === 'loading' && <StatusMessage $isNight={isNight} role="status">{t('map.loadingLanterns')}</StatusMessage>}
       {status === 'error' && <div role="alert">
-        <p>{error}</p>
+        <StatusMessage $isNight={isNight}>{error}</StatusMessage>
         <Action type="button" onClick={() => { setStatus('loading'); setAttempt((value) => value + 1) }}>{t('map.retry')}</Action>
       </div>}
-      {status === 'success' && items.length === 0 && <EmptyState>{mine ? t('map.noMineLanterns') : t('map.noLanterns')}</EmptyState>}
+      {status === 'success' && items.length === 0 && (
+        <StatusMessage $isNight={isNight}>
+          {mine ? t('map.noMineLanterns') : t('map.noLanterns')}
+        </StatusMessage>
+      )}
       {status === 'success' && hasNext && <Action type="button" onClick={() => { setStatus('loading'); setPage((value) => value + 1) }}>{t('map.more')}</Action>}
     </div>
   )

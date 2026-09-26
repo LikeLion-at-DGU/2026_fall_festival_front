@@ -2,16 +2,25 @@ import styled from 'styled-components'
 
 export const Sheet = styled.div`
     position: fixed;
-    bottom: 0;
+    top: ${({ $isSearching }) => $isSearching ? 'var(--sheet-top-gap)' : 'auto'};
+    bottom: ${({ $isSearching }) => $isSearching ? 'auto' : '0'};
     left: 0;
 
     width: 100%;
     --sheet-top-gap: 40px;
     --middle-height: 62dvh;
-    --collapsed-height: min(calc(100dvh - var(--sheet-top-gap)), calc(${({ theme }) => theme.nav.height} + 48px + env(safe-area-inset-bottom)));
-    height: ${({ $snapPosition }) => $snapPosition === 'high' ? 'calc(100dvh - var(--sheet-top-gap))' : $snapPosition === 'low' ? 'var(--collapsed-height)' : 'var(--middle-height)'};
-    min-height: var(--collapsed-height);
-    max-height: calc(100dvh - var(--sheet-top-gap));
+    --low-height: max(20px, calc(100dvh - 600px));
+    height: ${({ $isSearching, $snapPosition }) => $isSearching
+      ? 'calc(100svh - var(--sheet-top-gap))'
+      : $snapPosition === 'high'
+        ? 'calc(100dvh - var(--sheet-top-gap))'
+        : $snapPosition === 'low'
+          ? 'var(--low-height)'
+          : 'var(--middle-height)'};
+    min-height: var(--low-height);
+    max-height: ${({ $isSearching }) => $isSearching
+      ? 'calc(100svh - var(--sheet-top-gap))'
+      : 'calc(100dvh - var(--sheet-top-gap))'};
     transition: ${({ $isDragging }) => $isDragging ? 'none' : 'height 240ms ease, border-radius 240ms ease'};
     box-sizing: border-box;
     display: flex;
@@ -50,8 +59,8 @@ export const HandleBar = styled.div`
     flex-shrink: 0;
     box-sizing: border-box;
     border-radius: 19.179px;
-    border: 0.959px solid #858585;
-    background: #858585;
+    border: 0.959px solid ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
+    background: ${({ $isNight }) => $isNight ? '#272727' : '#9F9C99'};
 `
 
 export const Content = styled.div`

@@ -122,9 +122,9 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
         )}
       </S.Toolbar>
       {isLoading ? (
-        <S.Message role="status">{t('map.loadingPlace')}</S.Message>
+        <S.Message $isNight={isNight} role="status">{t('map.loadingPlace')}</S.Message>
       ) : !booth ? (
-        <S.Message role="alert">{t(currentDetail.errorKey)}</S.Message>
+        <S.Message $isNight={isNight} role="alert">{t(currentDetail.errorKey)}</S.Message>
       ) : (
         <>
           <S.Header>
@@ -145,7 +145,12 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
             )}
           </S.Header>
           {!simple && sheetTab === 'lantern' ? (
-            <LanternViewTab key={booth.booth_id} boothId={booth.booth_id} selectedDate={festivalDate} />
+            <LanternViewTab
+              key={booth.booth_id}
+              boothId={booth.booth_id}
+              selectedDate={festivalDate}
+              isNight={isNight}
+            />
           ) : (
             <>
               {simple ? (
