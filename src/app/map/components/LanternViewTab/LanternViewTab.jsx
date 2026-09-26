@@ -7,6 +7,7 @@ import styled from 'styled-components'
 import { useAuthStore } from '../../../../store/useAuthStore'
 import { getBoothLanterns, updateLantern, deleteLantern, reportLantern } from '../../../../api/lantern'
 import { useOptionalMapContext } from '../../context/MapProvider'
+import { useLanterns } from '../../../lantern/context/LanternProvider'
 import { getCurrentFestivalDate } from '../../../lantern/utils/getCurrentFestivalDate'
 import EmptyState from '../../../../components/common/EmptyState'
 import LanternCard from '../../../lantern/components/LanternCard'
@@ -43,7 +44,7 @@ const Warning = styled.p`
 const Divider = styled.hr`
   width: 100%;
   height: 0.959px;
-  margin: 16px 0 0;
+  margin: 12px 0 0;
   border: 0;
   background: #FFF;
 `
@@ -53,14 +54,17 @@ const MineFilter = styled.button`
   justify-content: flex-end;
   gap: 6px;
   width: fit-content;
+  height: 21px;
   margin-top: 16px;
   margin-left: auto;
   padding: 0;
   border: 0;
   background: transparent;
   font-family: Pretendard;
-  color: #7C7C7C;
-  font-size: 14px;
+  color: var(--text_black, #272727);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
   line-height: normal;
   cursor: pointer;
 
@@ -152,6 +156,7 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
   const { t } = useTranslation()
   // 홈 랭킹 모달처럼 MapProvider 밖에서 열리면 부스 목록 갱신은 건너뛴다.
   const refreshBooths = useOptionalMapContext()?.refreshBooths
+  const { refreshLanterns } = useLanterns()
   const [reporting, setReporting] = useState(null)
   const [reportNotice, setReportNotice] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -174,6 +179,8 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
       const { data } = await (kind === 'edit' ? updateLantern(id, changes) : deleteLantern(id))
       if (!data?.success) throw new Error(t('map.requestFailed'))
       refreshBooths?.()
+      // 나의 등불(개수·사용한 부스)도 같이 갱신
+      refreshLanterns()
       if (!mounted.current) return
       setEditing(null)
       setDeleting(null)
@@ -257,16 +264,16 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
 
   return (
     <div aria-busy={status === 'loading'}>
-      {reporting && <ReportModal key={reporting.id} isOpen
+      {reporting && <ReportModal key={reporting.id} isOpen portal mapAppearance
         onClose={() => setReporting(null)} onSubmit={submitReport} />}
-      <AlertModal isOpen={reportNotice != null} onClose={() => setReportNotice(null)}
+      <AlertModal portal isOpen={reportNotice != null} onClose={() => setReportNotice(null)}
         title={reportNotice === 'duplicate' ? t('map.reportDuplicateTitle') : t('map.reportSuccessTitle')}
         subTitle={reportNotice === 'duplicate' ? t('map.reportDuplicateDescription') : t('map.reportSuccessDescription')} />
 
-      {editing && <EditLanternModal isOpen lantern={editing}
+      {editing && <EditLanternModal isOpen portal lantern={editing}
         onClose={() => { if (!busy.current) setEditing(null) }}
         onSubmit={(id, changes) => mutate('edit', id, changes)} />}
-      {deleting && <ConfirmDeleteModal isOpen pending={pending} error={mutationError}
+      {deleting && <ConfirmDeleteModal isOpen portal pending={pending} error={mutationError}
         onClose={() => { if (!busy.current) setDeleting(null) }}
         onConfirm={() => mutate('delete', deleting.id)} />}
 
@@ -275,7 +282,7 @@ function LanternResults({ boothId, date, mine, isLoggedIn }) {
           <li key={item.id}>
             {['deleted_by_user', 'deleted_by_admin'].includes(item.status) ? (
               <p>{item.status === 'deleted_by_admin' ? t('map.deletedByAdmin') : t('map.deletedByUser')}</p>
-            ) : <LanternCard lantern={item} isMine={item.isMine === true}
+            ) : <LanternCard lantern={item} isMine={item.isMine === true} mapAppearance
               onReport={isLoggedIn && item.isMine === false ? () => setReporting(item) : undefined}
               onEdit={isLoggedIn && item.isMine === true && item.status === 'active' ? () => { setMutationError(''); setEditing(item) } : undefined}
               onDelete={isLoggedIn && item.isMine === true && item.status === 'active' ? () => { setMutationError(''); setDeleting(item) } : undefined}

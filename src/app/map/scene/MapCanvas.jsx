@@ -320,13 +320,35 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
   // 화면비(aspect)와 화각(fov)까지 넘기는 이유: 거리를 부스 크기에서 역산하는데, 같은 부스라도 폰 세로 화면에서는
   // 가로가 좁아 더 빠져야 한다. 회전을 마치고 화면을 돌리면(가로 모드) 다음 선택부터 새 비율로 계산된다.
   //
-  // 상세 시트를 닫으면 focusBooth가 null이 되는데, 그때 카메라를 되돌리지는 않는다 —
-  // 부스를 보다가 시트만 닫는 건 "그 자리에서 계속 보겠다"는 뜻이라 원래 자리로 튕겨 가면 당황스럽다.
-  // (구역을 바꾸면 위 useEffect가 그 구역 기본 시점으로 되돌린다.)
+  // 2026-09-26: 상세를 닫으면(뒤로가기 / ← 버튼) 구역 기본 시점으로 되돌린다 — 기획 요구 "지도 축소".
+  // 예전에는 되돌리지 않았는데, 뒤로가기로 목록에 올라왔는데 지도만 부스에 붙어 있으면
+  // "어느 구역을 보고 있는지"를 잃는다. 들어갈 때와 나올 때가 대칭이어야 예측이 된다.
+  //
+  // preset을 의존성에 넣지 않고 ref로 읽는 이유: 구역이 바뀌면 위 구역 이펙트가 이미 기본 시점으로
+  // 되돌려 놓으므로, 여기서 또 비행을 만들면 같은 자리로 가는 비행이 겹친다.
+  const presetRef = useRef(preset)
+  presetRef.current = preset
+  // 직전 focusBooth — "있다가 없어졌을 때"만 축소해야 한다. 지도에 막 들어온 순간에도 focusBooth가
+  // null이지만 그땐 이미 기본 시점이라 되돌릴 게 없다.
+  const previousFocusRef = useRef(focusBooth)
+
   useEffect(() => {
-    if (!focusBooth) return
+    const previousFocus = previousFocusRef.current
+    previousFocusRef.current = focusBooth
     const controls = controlsRef.current
     if (!controls) return
+
+    const startFlight = (toPosition, toTarget) => {
+      // 팬 제한 기준을 먼저 옮겨야 한다 — 이동 중에 아래 useFrame이 옛 기준으로 되돌리지 않도록.
+      panCenterRef.current = toTarget
+      flightRef.current = {
+        startedAt: performance.now(),
+        fromPosition: camera.position.toArray(),
+        fromTarget: controls.target.toArray(),
+        toPosition,
+        toTarget,
+      }
+    }
 
     const zonePreset = presetRef.current
     const orbit = getPresetOrbit(zonePreset)
@@ -339,15 +361,17 @@ function ZoneCamera({ zoneId, focusBooth, controlsRef }) {
     })
     if (!focus) return
 
-    // 팬 제한 기준을 먼저 옮겨야 한다 — 이동 중에 아래 useFrame이 옛 기준으로 되돌리지 않도록.
-    panCenterRef.current = focus.target
-    flightRef.current = {
-      startedAt: performance.now(),
-      fromPosition: camera.position.toArray(),
-      fromTarget: controls.target.toArray(),
-      toPosition: focus.position,
-      toTarget: focus.target,
+    startFlight(focus.position, focus.target)
+
+    if (!focusBooth) {
+      if (!previousFocus) return
+      startFlight(presetRef.current.position, presetRef.current.target)
+      return
     }
+
+    const focus = getBoothFocus(focusBooth, camera.position.toArray())
+    if (!focus) return
+    startFlight(focus.position, focus.target)
   }, [camera, controlsRef, focusBooth])
 
   // 이동 중에 사용자가 화면을 건드리면 그 자리에서 멈춘다.
