@@ -111,6 +111,9 @@ export default function NowPlayingCards({
                 performance.image_url || performanceThumbnail
 
               const handleCardClick = () => {
+                trackEvent('now_playing_clicked', {
+                  performance_id: performance.performance_id,
+                })
                 if (performance.has_setlist === false) {
                   navigate(
                     `/performance?date=${performance.start_at.slice(0, 10)}`
