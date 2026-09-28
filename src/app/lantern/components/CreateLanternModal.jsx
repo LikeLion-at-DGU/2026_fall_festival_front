@@ -56,8 +56,9 @@ export default function CreateLanternModal({
   const [isBoothListLoading, setIsBoothListLoading] = useState(false);
   const boothFieldRef = useRef(null);
 
-  // 모달이 열릴 때마다 당일 운영 부스 목록을 새로 받아온다 (지도팀 소관 GET /api/booths/,
-  // 여긴 부스 선택 드롭다운 전용으로만 사용 — place_type=BOOTH만 등불을 달 수 있음)
+  // 모달이 열릴 때마다 당일 운영 부스 목록을 새로 받아온다 (GET /api/lanterns/booth-options/).
+  // 이 API는 등불을 달 수 있는 부스만 내려주고 place_type이 없다 — 필드가 없으면 부스로 취급하고,
+  // 나중에 place_type이 추가돼도 시설은 계속 걸러지도록 둔다
   useEffect(() => {
     if (!isOpen || boothList.length > 0) return;
 
@@ -70,7 +71,7 @@ export default function CreateLanternModal({
         const booths = res.data?.data?.booths ?? [];
         setFetchedBoothList(
           booths
-            .filter((booth) => booth.place_type === 'BOOTH')
+            .filter((booth) => (booth.place_type ?? 'BOOTH') === 'BOOTH')
             .map((booth) => ({ id: booth.booth_id, name: booth.name, category: booth.category }))
         );
       })
