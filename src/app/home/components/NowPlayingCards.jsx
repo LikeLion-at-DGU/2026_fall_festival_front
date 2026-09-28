@@ -6,7 +6,6 @@ import useServerTime from '../../../hooks/useServerTime'
 import { useTranslation } from '../../../i18n/useTranslation'
 import { formatTime } from '../../../utils/time'
 import performanceThumbnail from '../../performance/assets/performance-thumbnail.png'
-import artistThumbnail from '../assets/artist.png'
 import { getPerformanceProgress } from '../utils/getPerformanceProgress'
 
 
@@ -108,36 +107,20 @@ export default function NowPlayingCards({
                   performance.end_at
                 )
 
-              const isArtistPerformance =
-                performance.has_setlist === false
-
-              const displayName =
-                isArtistPerformance
-                  ? '연예인 공연'
-                  : performance.team_name
-
               const thumbnailSrc =
-                isArtistPerformance
-                  ? artistThumbnail
-                  : performance.image_url ||
-                  performanceThumbnail
+                performance.image_url || performanceThumbnail
 
               const handleCardClick = () => {
-                trackEvent('now_playing_clicked', { performance_id: performance.performance_id })
-                if (isArtistPerformance) {
+                trackEvent('now_playing_clicked', {
+                  performance_id: performance.performance_id,
+                })
+                if (performance.has_setlist === false) {
                   navigate(
-                    `/performance?date=${performance.start_at.slice(
-                      0,
-                      10
-                    )}`
+                    `/performance?date=${performance.start_at.slice(0, 10)}`
                   )
-
                   return
                 }
-
-                navigate(
-                  `/performance/${performance.performance_id}`
-                )
+                navigate(`/performance/${performance.performance_id}`)
               }
 
               return (
@@ -149,7 +132,7 @@ export default function NowPlayingCards({
                   <S.CardButton
                     type="button"
                     aria-label={
-                      `${displayName} ` +
+                      `${performance.team_name} ` +
                       `${formatTime(performance.start_at)}부터 ` +
                       `${formatTime(performance.end_at)}`
                     }
@@ -160,7 +143,7 @@ export default function NowPlayingCards({
                       alt={t(
                         'home.performanceImageAlt',
                         {
-                          team: displayName,
+                          team: performance.team_name,
                         }
                       )}
                     />
@@ -170,7 +153,7 @@ export default function NowPlayingCards({
                     <S.CardInfo>
                       <S.InfoRow>
                         <S.CardName>
-                          {displayName}
+                          {performance.team_name}
                         </S.CardName>
 
                         <S.CardTime>
