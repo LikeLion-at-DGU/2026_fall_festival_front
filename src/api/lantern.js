@@ -51,4 +51,4 @@ export const getLantern = (lanternId) => apiClient.get(`/api/lanterns/${lanternI
 // 파라미터 미지정 시 서버가 오늘 날짜 + 현재 시각 기준 주/야간으로 판정해서
 // "당일 운영 부스만" 내려주므로 그대로 둔다.
 // 공개 API라 로그인 정보 오류 시 비로그인으로 재시도
-export const getLanternBoothOptions = () => apiClient.get('/api/booths/', { optionalUserAuth: true })
+export const getLanternBoothOptions = () => apiClient.get('/api/lanterns/booth-options/', { optionalUserAuth: true })
