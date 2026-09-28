@@ -5,9 +5,9 @@ import {
   createLantern as createLanternRequest,
   deleteLantern as deleteLanternRequest,
   getLanterns as getLanternsRequest,
-  getLanternBoothOptions,
   updateLantern as updateLanternRequest,
 } from '../../../api/lantern'
+import { getBooths } from '../../../api/map'
 import { getToday, setServerTime, hasServerTime } from '../utils/getToday'
 
 const LanternContext = createContext(null)
@@ -69,8 +69,9 @@ function AccountLanternProvider({ children, userId }) {
   const refreshToday = useCallback(() => setServerToday(getToday()), [])
 
   // 서버(가상 시계) 시각 동기화 — 실패 시 기기 날짜로 동작
+  // 등불 부스 옵션 API(booth-options)엔 server_time이 없어서 부스 목록 API의 server_time을 쓴다
   const syncServerTime = useCallback(() => {
-    getLanternBoothOptions()
+    getBooths()
       .then((res) => {
         setServerTime(res.data.data?.server_time)
         refreshToday()
