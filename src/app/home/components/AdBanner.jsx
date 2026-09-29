@@ -49,7 +49,7 @@ const BANNERS = [
     id: 4,
     title: '소개팅',
     image: sogaeting,
-    href: 'https://threadoffate.site/?ref=dgufest',
+    href: 'https://threadoffate.site/?ref=FESTIVAL',
     boothId: null,
     to: null,
   },
