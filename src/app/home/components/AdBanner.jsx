@@ -43,7 +43,7 @@ const BANNERS = [
     image: leaders,
     href: null,
     boothId: null,
-    to: '/info/collab/with-nature',
+    to: '/info/collab/108-leaders',
   },
   {
     id: 4,
