@@ -43,7 +43,15 @@ const BANNERS = [
     image: leaders,
     href: null,
     boothId: null,
-    to: '/info/collab/108-leaders',
+    to: '/info/collab/with-nature',
+  },
+  {
+    id: 4,
+    title: '소개팅',
+    image: sogaeting,
+    href: 'https://threadoffate.site/?ref=FESTIVAL',
+    boothId: null,
+    to: null,
   },
   {
     id: 5,
