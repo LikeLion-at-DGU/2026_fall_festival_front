@@ -1,5 +1,5 @@
 import InfoDetailHeader from './InfoDetailHeader'
-import instagramIcon from '../../../assets/info/instagram-icon.png'
+import instagramIcon from '../../../assets/info/instagram-icon.svg'
 import * as S from './CollabDetail.styles'
 
 export default function CollabDetail({ collab, onBack, headerTitle = '협업' }) {
@@ -7,13 +7,14 @@ export default function CollabDetail({ collab, onBack, headerTitle = '협업' })
 
   return (
     <S.Page>
-      <InfoDetailHeader title={headerTitle} onBack={onBack} compact />
+      <InfoDetailHeader title={headerTitle} onBack={onBack} />
       <S.Title>{collab.name}</S.Title>
       <S.Card>
         <S.Image
           src={collab.imageUrl || undefined}
           alt={`${collab.name} 소개 이미지`}
           $fit={collab.imageFit}
+          decoding="async"
         />
         <S.Copy>
           <S.Label>Introduction</S.Label>

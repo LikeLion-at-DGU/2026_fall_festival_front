@@ -5,10 +5,10 @@ import {
   createLantern as createLanternRequest,
   deleteLantern as deleteLanternRequest,
   getLanterns as getLanternsRequest,
-  getLanternBoothOptions,
   updateLantern as updateLanternRequest,
 } from '../../../api/lantern'
-import { getToday, setServerTime } from '../utils/getToday'
+import { getBooths } from '../../../api/map'
+import { getToday, setServerTime, hasServerTime } from '../utils/getToday'
 
 const LanternContext = createContext(null)
 
@@ -54,6 +54,14 @@ function AccountLanternProvider({ children, userId }) {
   // festivalDate가 오늘이 아니면 등불 달기 자체를 막는 데 쓰인다.
   const [activeBooth, setActiveBooth] = useState(null)
   const [lanterns, setLanterns] = useState([])
+  // 오늘 등불 목록 조회가 끝났는지 — 로그인 직후 이 값을 기다리지 않고 카운트를 보면
+  // 아직 [] 상태라 0으로 오판해서 3개 다 채운 사용자도 작성 모달이 열려버린다
+  // true로 초기화하면, 이미 로그인된 채로 마운트될 때(새로고침 등) fetch effect가 돌기 전
+  // 첫 렌더에서 lanterns=[]인데도 '조회 완료'로 오판되는 순간이 생긴다 — userId 유무로 초기값을 바로 잡는다
+  const [lanternsReady, setLanternsReady] = useState(() => userId == null)
+  // 서버 가상 시계 동기화가 끝났는지 — lanternsReady와 별개의 비동기라, 이걸 기다리지 않으면
+  // getToday()가 기기 날짜로 대체된 채로 오늘 카운트를 잘못 계산할 수 있다
+  const [serverTimeReady, setServerTimeReady] = useState(hasServerTime)
   const [coupon, setCoupon] = useState(null)
   // 서버 기준 오늘 — 바뀌면 소비 컴포넌트가 다시 렌더링되도록 state로 보관
   const [serverToday, setServerToday] = useState(getToday)
@@ -61,13 +69,15 @@ function AccountLanternProvider({ children, userId }) {
   const refreshToday = useCallback(() => setServerToday(getToday()), [])
 
   // 서버(가상 시계) 시각 동기화 — 실패 시 기기 날짜로 동작
+  // 등불 부스 옵션 API(booth-options)엔 server_time이 없어서 부스 목록 API의 server_time을 쓴다
   const syncServerTime = useCallback(() => {
-    getLanternBoothOptions()
+    getBooths()
       .then((res) => {
         setServerTime(res.data.data?.server_time)
         refreshToday()
       })
       .catch(() => {})
+      .finally(() => setServerTimeReady(true))
   }, [refreshToday])
 
   // 앱 시작 + 탭 복귀 시 동기화, 1분마다 자정 넘김 확인
@@ -88,16 +98,21 @@ function AccountLanternProvider({ children, userId }) {
   useEffect(() => {
     if (userId == null) {
       setLanterns([])
+      setLanternsReady(true)
       return
     }
 
     let cancelled = false
+    setLanternsReady(false)
     fetchAllFestivalDaysLanterns()
       .then((items) => {
         if (!cancelled) setLanterns(items)
       })
       .catch(() => {
         // 조회 실패 시엔 빈 목록 유지 — 등록 시점에 서버가 다시 검증해준다
+      })
+      .finally(() => {
+        if (!cancelled) setLanternsReady(true)
       })
 
     return () => {
@@ -186,6 +201,8 @@ function AccountLanternProvider({ children, userId }) {
         activeBooth,
         setActiveBooth,
         lanterns,
+        lanternsReady,
+        serverTimeReady,
         coupon,
         setCoupon,
         serverToday,

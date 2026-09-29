@@ -26,7 +26,7 @@ import {
   getNoticeList,
 } from '../../api/info'
 import { useTranslation } from '../../i18n/useTranslation'
-import { DEFAULT_FESTIVAL_DATE } from '../../constants/festivalDates'
+import { getDefaultFestivalDate } from '../lantern/utils/getCurrentFestivalDate'
 import * as S from './InfoPage.styles'
 
 const INFO_TABS = [
@@ -59,10 +59,28 @@ const normalizeLostItemDetail = (item) => ({
     .filter(Boolean),
 })
 
+const attachNoticeContents = (items, signal) =>
+  Promise.all(
+    items.map(async (item) => {
+      if (typeof item.content === 'string') return item
+
+      try {
+        const { data: response } = await getNoticeDetail(item.id, { signal })
+        return {
+          ...item,
+          content: response?.data?.content ?? '',
+        }
+      } catch (error) {
+        if (signal?.aborted) throw error
+        return { ...item, content: '' }
+      }
+    }),
+  )
+
 export default function InfoPage() {
   const { t } = useTranslation()
   const infoTabs = INFO_TABS.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const [lostDate, setLostDate] = useState(DEFAULT_FESTIVAL_DATE)
+  const [lostDate, setLostDate] = useState(getDefaultFestivalDate)
   const [keyword, setKeyword] = useState('')
   const [noticeList, setNoticeList] = useState({
     ...INITIAL_LIST_STATE,
@@ -105,12 +123,16 @@ export default function InfoPage() {
     setNoticeList((prev) => ({ ...prev, isLoading: true, error: '' }))
 
     getNoticeList({ page: 0, size: 20 }, { signal: controller.signal })
-      .then(({ data: response }) => {
+      .then(async ({ data: response }) => {
         if (response?.success !== true || !Array.isArray(response.data?.items)) {
           throw new Error('Invalid notice list response')
         }
+        const items = await attachNoticeContents(
+          response.data.items,
+          controller.signal,
+        )
         setNoticeList({
-          items: response.data.items,
+          items,
           isLoading: false,
           error: '',
           page: 0,
@@ -141,13 +163,14 @@ export default function InfoPage() {
     setNoticeList((prev) => ({ ...prev, isLoadingMore: true }))
 
     getNoticeList({ page: nextPage, size: 20 })
-      .then(({ data: response }) => {
+      .then(async ({ data: response }) => {
         if (response?.success !== true || !Array.isArray(response.data?.items)) {
           throw new Error('Invalid notice list response')
         }
+        const items = await attachNoticeContents(response.data.items)
         setNoticeList((prev) => ({
           ...prev,
-          items: [...prev.items, ...response.data.items],
+          items: [...prev.items, ...items],
           page: nextPage,
           hasNext: Boolean(response.data.meta?.has_next),
           isLoadingMore: false,

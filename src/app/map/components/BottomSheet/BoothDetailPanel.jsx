@@ -3,10 +3,11 @@ import { festivalDay, boothType } from '../../../../analytics/policy'
 import { useAnalyticsView } from '../../../../analytics/useAnalyticsView'
 import LanternViewTab from '../LanternViewTab/LanternViewTab'
 import { useOptionalMapContext } from '../../context/MapProvider'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLanterns } from '../../../lantern/context/LanternProvider'
 import { useAuth } from '../../../../hooks/useAuth'
 import { getBoothDetail } from '../../../../api/map'
+import { getBoothLanterns } from '../../../../api/lantern'
 import lanternOn from '../../../../assets/map/lantern/lanternOn.svg'
 import lanternOff from '../../../../assets/map/lantern/lanternOff.svg'
 import { useTranslation } from '../../../../i18n/useTranslation'
@@ -17,13 +18,17 @@ import * as S from './BoothDetailPanel.styles'
 // 실제 부스 설명은 장소 상세 페이지와 공통 콘텐츠를 재사용하도록 연결한다.
 export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTab, selectedDate, isNight = false }) {
   const { language, t } = useTranslation()
-  const { setActiveBooth } = useLanterns()
+  const { setActiveBooth, lanterns } = useLanterns()
   const { isLoggedIn } = useAuth()
+  const festivalDate = selectedDate ?? DEFAULT_FESTIVAL_DATE
   // 등불 보기 탭에서 수정/삭제가 일어나면 MapProvider의 boothRevision이 올라간다.
   // 홈 랭킹 모달처럼 MapProvider 밖에서 열릴 때는 컨텍스트가 없으므로 0으로 고정(재조회 없음).
   const boothRevision = useOptionalMapContext()?.boothRevision ?? 0
   const [detail, setDetail] = useState(null)
-  const currentDetail = detail?.boothId === boothId && detail?.isLoggedIn === isLoggedIn
+  const [lanternTotal, setLanternTotal] = useState(null)
+  const currentDetail = detail?.boothId === boothId
+    && detail?.date === festivalDate
+    && detail?.isLoggedIn === isLoggedIn
     ? detail : null
   const booth = currentDetail?.booth ?? null
   const isLoading = currentDetail == null
@@ -31,15 +36,16 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
   useAnalyticsView('site_error_shown', Boolean(currentDetail?.errorKey), boothId, { error_type: 'load_failed' })
 
   useEffect(() => {
-    let ignore = false
-    getBoothDetail(boothId)
+    const controller = new AbortController()
+    getBoothDetail(boothId, { date: festivalDate, signal: controller.signal })
       .then(({ data: response }) => {
-        if (ignore) return
+        if (controller.signal.aborted) return
         if (!response?.success || response.data?.booth_id !== Number(boothId)) {
           throw new Error('Invalid booth detail response')
         }
         setDetail({
           boothId,
+          date: festivalDate,
           isLoggedIn,
           booth: {
             ...response.data,
@@ -49,9 +55,10 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
         })
       })
       .catch((error) => {
-        if (ignore) return
+        if (controller.signal.aborted) return
         setDetail({
           boothId,
+          date: festivalDate,
           isLoggedIn,
           booth: null,
           errorKey: error.response?.status === 404
@@ -59,8 +66,8 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
             : 'map.placeLoadError',
         })
       })
-    return () => { ignore = true }
-  }, [boothId, isLoggedIn, boothRevision])
+    return () => controller.abort()
+  }, [boothId, boothRevision, festivalDate, isLoggedIn])
   // 간단 표시(위치만) 여부 — 판정은 constants/categories.js가 한다(카드 목록과 같은 기준).
   const simple = booth && isSimplePlace(booth)
   const money = (value) => value
@@ -68,7 +75,52 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
     : t('map.free')
 
   const activeBoothId = booth && !simple ? booth.booth_id : null
-  const festivalDate = selectedDate ?? DEFAULT_FESTIVAL_DATE
+  const ownLanternVersion = lanterns
+    .filter((item) => Number(item.boothId) === Number(boothId) && item.festivalDate === festivalDate)
+    .map((item) => `${item.id}:${item.status}`)
+    .join('|')
+  const currentLanternTotal = lanternTotal?.boothId === boothId
+    && lanternTotal?.date === festivalDate
+    && lanternTotal?.revision === boothRevision
+    ? lanternTotal.count
+    : null
+
+  const updateLanternTotal = useCallback((value) => {
+    if (value == null || value === '') return
+    const count = Number(value)
+    if (!Number.isInteger(count) || count < 0) return
+    setLanternTotal({ boothId, date: festivalDate, revision: boothRevision, count })
+  }, [boothId, boothRevision, festivalDate])
+
+  // TODO(BE): 상세 API가 날짜별 lantern_count를 내려주면 이 임시 추가 조회를 제거한다.
+  // 현재 상세 API의 lantern_count는 날짜 조건이 없어서 목록 API의 total_count로 보정한다.
+  useEffect(() => {
+    if (!booth || simple) {
+      setLanternTotal(null)
+      return
+    }
+
+    const controller = new AbortController()
+    getBoothLanterns(boothId, {
+      date: festivalDate,
+      page: 0,
+      size: 1,
+      signal: controller.signal,
+    })
+      .then(({ data: response }) => {
+        if (controller.signal.aborted) return
+        if (!response?.success) return
+        updateLanternTotal(response?.data?.total_count ?? response?.data?.meta?.total_count)
+      })
+      .catch((error) => {
+        // total_count 조회 실패 시 상세 API의 lantern_count를 그대로 사용한다.
+        if (import.meta.env.DEV) {
+          console.warn('[booth detail] 날짜별 등불 수 조회 실패', error)
+        }
+      })
+
+    return () => controller.abort()
+  }, [booth, boothId, boothRevision, festivalDate, ownLanternVersion, simple, updateLanternTotal])
 
   useEffect(() => {
     setActiveBooth(activeBoothId == null ? null : {
@@ -145,7 +197,7 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
                   src={booth.has_my_lantern ? lanternOn : lanternOff}
                   alt={booth.has_my_lantern ? t('map.lanternRegistered') : t('map.lanternNotRegistered')}
                 />
-                <span>{booth.lantern_count}</span>
+                <span>{currentLanternTotal ?? booth.lantern_count}</span>
               </S.Lantern>
             )}
           </S.Header>
@@ -155,6 +207,7 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
               boothId={booth.booth_id}
               selectedDate={festivalDate}
               isNight={isNight}
+              onTotalCountChange={updateLanternTotal}
             />
           ) : (
             <>
@@ -191,18 +244,21 @@ export default function BoothDetailPanel({ boothId, onBack, sheetTab, setSheetTa
                           {t('map.reusableBooth')}</S.Reusable>
                       )}
                     </S.LabelRow>
-                    <S.Text>{t('map.operationLocation')}: {booth.location_detail || booth.zone}</S.Text>
-                    <S.Operations aria-label={t('map.operationSchedule')}>
-                      {booth.operations.map((op) => (
-                        <li key={`${op.festival_date}-${op.time_slot}`}>
-                          {t('map.operationTime')}: {Number(op.festival_date.slice(5, 7))}/
-                          {Number(op.festival_date.slice(8, 10))} ({t(op.time_slot === 'DAY' ? 'map.day' : 'map.night')}){' '}
-                          {op.open_at}–{op.close_at}
-                        </li>
-                      ))}
-                    </S.Operations>
-                    {!booth.operations.length && <S.Text>{t('map.scheduleTbd')}</S.Text>}
-                    <S.Text>{t('map.admissionFee')}: {money(booth.entrance_fee)}</S.Text>
+                    <S.InformationDetails>
+                      <S.Text>{t('map.operationLocation')}: {booth.location_detail || booth.zone}</S.Text>
+                      {booth.operations.length ? (
+                        <S.Operations aria-label={t('map.operationSchedule')}>
+                          {booth.operations.map((op) => (
+                            <li key={`${op.festival_date}-${op.time_slot}`}>
+                              {t('map.operationTime')}: {Number(op.festival_date.slice(5, 7))}/
+                              {Number(op.festival_date.slice(8, 10))} ({t(op.time_slot === 'DAY' ? 'map.day' : 'map.night')}){' '}
+                              {op.open_at}–{op.close_at}
+                            </li>
+                          ))}
+                        </S.Operations>
+                      ) : <S.Text>{t('map.scheduleTbd')}</S.Text>}
+                      <S.Text>{t('map.admissionFee')}: {money(booth.entrance_fee)}</S.Text>
+                    </S.InformationDetails>
                   </S.Section>
                   {booth.category !== 'ECO' && booth.menus.length > 0 && (
                     <S.Section>
