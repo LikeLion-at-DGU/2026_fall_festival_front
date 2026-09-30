@@ -73,7 +73,7 @@ const BANNERS = [
     id: 4,
     title: '운명도 꿰어야 사랑이다',
     image: sogaeting,
-    href: 'https://threadoffate.site',
+    href: 'https://threadoffate.site/?ref=FESTIVAL',
     boothId: null,
     to: null,
   },
